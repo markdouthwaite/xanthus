@@ -1,80 +1,171 @@
+import time
 import numpy as np
-import pandas as pd
+from scipy.sparse import coo_matrix, dok_matrix
+from itertools import islice
+from collections import defaultdict
+from .encoder import DatasetEncoder
+
+
+def construct_coo_matrix(p, q, r=None, dtype="float32"):
+    r = r if r is not None else np.ones_like(p)
+    return coo_matrix((r.astype(dtype), (p, q)))
+
+
+def rejection_sample(j, sampled=None):
+    sampled = set(sampled) if sampled is not None else set()
+
+    while True:
+        choice = np.random.randint(j)
+        if choice not in sampled:
+            yield choice
+            sampled.add(choice)
+
+
+def single_sample_zeros(i, mat, k):
+    yield from islice(rejection_sample(mat.shape[1], mat[i].nonzero()[1]), k)
+
+
+def sample_zeros(ids, mat, k):
+    yield from ((i, z) for i in ids for z in single_sample_zeros(i, mat, k))
 
 
 class Dataset:
-    def __init__(self, users, items, ratings, user_features=None, item_features=None):
-        self._users = users
-        self._items = items
-        self._ratings = self._normalise_ratings(ratings)
+    def __init__(self, interactions, user_meta=None, item_meta=None, encoder=None):
+        self.encoder = encoder
+        self.interactions = interactions
+        self.user_meta = user_meta
+        self.item_meta = item_meta
 
-        self._user_features = user_features
-        self._item_features = item_features
+    def __iter__(self):
+        yield from self.iter()
 
-        self._user_encodings = {k: i for i, k in enumerate(np.unique(users))}
-        self._item_encodings = {k: i for i, k in enumerate(np.unique(items))}
+    def to_arrays(self, *args, **kwargs):
+        # This is a little grim.
+        arr = [[a, b, c] for a, b, c in self.iter(*args, **kwargs)]
+        return (
+            np.asarray([a for a, _, _ in arr]),
+            np.asarray([b for _, b, _ in arr]),
+            np.asarray([c for _, _, c in arr]),
+        )
 
-        if self._user_features is not None:
-            n_users = len(self._user_features)
-            self._user_encodings = {
-                k: i + n_users for i, k in enumerate(np.unique(user_features))
-            }
+    def iter(self, negative_samples=0, output_dim=1):
+        interactions = self.interactions.tocsr()
 
-        if self._item_features is not None:
-            n_items = len(self._item_features)
-            self._item_encodings = {
-                k: i + n_items for i, k in enumerate(np.unique(item_features))
-            }
+        if self.user_meta is not None:
+            user_meta = self.user_meta.tocsr()
+        else:
+            user_meta = None
+
+        if self.item_meta is not None:
+            item_meta = self.item_meta.tocsr()
+        else:
+            item_meta = None
+
+        users, items = interactions.nonzero()
+        ratings = interactions.data
+
+        print(len(ratings))
+        if negative_samples > 0:
+            neg_users, neg_items, neg_ratings = self._sample_negatives(interactions,
+                                                                       negative_samples)
+
+            users = np.concatenate((users, neg_users))
+            items = np.concatenate((items, neg_items))
+            ratings = np.concatenate((ratings, neg_ratings))
+
+            np.random.shuffle(users)
+            np.random.shuffle(items)
+            np.random.shuffle(ratings)
+
+        print(len(ratings))
+        ratings.reshape(-1, 1)
+
+        if user_meta is not None and output_dim > 1:
+            users = self._iter_meta(users, user_meta, output_dim)
+        else:
+            users = users.reshape(-1, 1)
+
+        if item_meta is not None and output_dim > 1:
+            items = self._iter_meta(items, item_meta, output_dim)
+        else:
+            items = items.reshape(-1, 1)
+
+        for (user, item, rating) in zip(users, items, ratings):
+            yield user, item, rating
 
     @staticmethod
-    def _normalise_ratings(ratings):
-        ratings = (ratings - np.min(ratings)) / (np.max(ratings) - np.min(ratings))
-        return ratings
+    def _sample_negatives(mat, n):
+        users = mat.nonzero()[0]
+        data = np.asarray(list(sample_zeros(users, mat, n))).astype(np.int32)
+        return data[:, 0], data[:, 1], np.zeros(shape=data.shape[0])
 
-    @property
-    def encoded_users(self):
-        for i, user in enumerate(self._users):
-            if self._user_features is not None:
-                encoded_features = [
-                    self._user_encodings[_] for _ in self._user_features[i]
-                ]
-                yield np.asarray([self._user_encodings[user], *encoded_features])
-            else:
-                yield np.asarray([self._user_encodings[user]])
+    @staticmethod
+    def _iter_meta(ids, meta, n_dim):
+        groups = defaultdict(list)
+        _ids, tags = meta.nonzero()
 
-    @property
-    def encoded_items(self):
-        for i, item in enumerate(self._items):
-            if self._item_features is not None:
-                encoded_features = [
-                    self._item_encodings[_] for _ in self._item_features[i]
-                ]
-                yield np.asarray([self._item_encodings[item], *encoded_features])
-            else:
-                yield np.asarray([self._item_encodings[item]])
+        for _id, _tag in zip(_ids, tags):
+            groups[_id].append(_tag)
 
-    def build(self, negative_samples=0):
-        users = np.asarray(list(self.encoded_users))
-        items = np.asarray(list(self.encoded_items))
+        for _id in ids:
+            group = groups[_id]
+            padding = [0] * max(0, n_dim - len(group))
+            features = [_id, *group, *padding][:n_dim]
+            yield features
 
-        unique_items = np.unique(items, axis=0).reshape(-1, 1)
-        unique_item_ids = unique_items[:, 0]
+    @classmethod
+    def from_frame(
+        cls,
+        interactions,
+        user_meta=None,
+        item_meta=None,
+        normalize=True,
+        encoder=None,
+        **kwargs
+    ):
 
-        for user in users:
-            mask = users == user[0]
-            user_items = np.unique(items[mask[:, 0]][:, 0], axis=0)
-            for (item, rating) in zip(items[mask], self._ratings[mask.flatten()]):
-                yield user, np.atleast_1d(item), rating
+        users = set(interactions["user"].tolist())
+        items = set(interactions["item"].tolist())
 
-                if negative_samples > 0:
+        if user_meta is not None:
+            users.update(set(user_meta["user"].tolist()))
 
-                    samples = 0
+        if item_meta is not None:
+            items.update(set(item_meta["item"].tolist()))
 
-                    while samples < negative_samples:
-                        sampled_item = np.random.choice(unique_item_ids)
+        if encoder is None:
+            encoder = DatasetEncoder(**kwargs)
+            encoder.fit(
+                users,
+                items,
+                user_meta["tag"].unique() if user_meta is not None else None,
+                item_meta["tag"].unique() if item_meta is not None else None,
+            )
 
-                        if sampled_item not in user_items:
-                            item_mask = unique_items[:, 0] == sampled_item
-                            sampled_item_vector = unique_items[item_mask][0]
-                            yield user, sampled_item_vector, 0.0
-                            samples += 1
+        encoded = encoder.transform(interactions["user"], interactions["item"])
+
+        if "rating" not in interactions.columns:
+            ratings = np.ones_like(encoded["users"]).astype(np.float32)
+        else:
+            ratings = interactions["rating"].values.astype(np.float32)
+
+        if normalize and not np.unique(ratings).shape[0] < 2:
+            ratings = 1.0 / (np.exp(ratings) - 1.0)
+
+        interactions = construct_coo_matrix(encoded["users"], encoded["items"], ratings)
+
+        if user_meta is not None:
+            encoded = encoder.transform(
+                users=user_meta["user"], user_features=user_meta["tag"]
+            )
+            user_meta = construct_coo_matrix(encoded["users"], encoded["user_features"])
+
+        if item_meta is not None:
+            encoded = encoder.transform(
+                items=item_meta["item"], item_features=item_meta["tag"]
+            )
+            item_meta = construct_coo_matrix(encoded["items"], encoded["item_features"])
+
+        return cls(
+            interactions, user_meta=user_meta, item_meta=item_meta, encoder=encoder
+        )

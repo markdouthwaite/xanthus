@@ -67,7 +67,7 @@ def get_nmf_model(
 
     body = Concatenate()([mf_body, mlp_body])
 
-    output = Dense(1, activation="sigmoid")(body)
+    output = Dense(1, activation="sigmoid",)(body)
 
     return Model(inputs=[user_input, item_input], outputs=output)
 

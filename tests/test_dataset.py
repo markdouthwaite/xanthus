@@ -1,45 +1,9 @@
 import pytest
-import uuid
 
 import numpy as np
 import pandas as pd
 
 from xanthus.dataset import DatasetEncoder, Dataset
-
-np.random.seed(42)
-
-
-@pytest.fixture
-def sample_dataset():
-    a = [uuid.uuid4().hex[:10] for _ in range(100)]
-    b = [uuid.uuid4().hex[:10] for _ in range(100)]
-    return np.c_[np.random.choice(a, 1000), np.random.choice(b, 1000)]
-
-
-@pytest.fixture
-def sample_dataframes(k=1000):
-    a = [uuid.uuid4().hex[:10] for _ in range(1000)]
-    b = [uuid.uuid4().hex[:10] for _ in range(1000)]
-    a_m = [uuid.uuid4().hex[:4] for _ in range(10)]
-    b_m = [uuid.uuid4().hex[:4] for _ in range(10)]
-
-    interactions_data = np.c_[
-        np.random.choice(a, k), np.random.choice(b, k), np.random.randint(1, 5, size=k),
-    ]
-
-    interactions = pd.DataFrame(
-        data=interactions_data, columns=["user", "item", "rating"]
-    )
-    users = pd.DataFrame(
-        data=[(_, np.random.choice(a_m)) for _ in np.unique(interactions_data[:, 0])],
-        columns=["user", "tag"],
-    )
-    items = pd.DataFrame(
-        data=[(_, np.random.choice(b_m)) for _ in np.unique(interactions_data[:, 1])],
-        columns=["item", "tag"],
-    )
-
-    return interactions, users, items
 
 
 def test_user_item_end_to_end_mapping(sample_dataframes):
@@ -75,6 +39,23 @@ def test_user_item_end_to_end_mapping(sample_dataframes):
         assert np.allclose(new_ratings, old_ratings)
 
 
+def test_consistent_interactions_size_for_split_datasets(sample_dataframes):
+    interactions, _, _ = sample_dataframes
+
+    encoder = DatasetEncoder()
+    encoder.fit(interactions["user"], interactions["item"])
+
+    train_interactions = interactions.iloc[:int(len(interactions) / 2)]
+    test_interactions = interactions.iloc[:int(len(interactions) / 2)]
+
+    train_dataset = Dataset.from_frame(train_interactions, encoder=encoder)
+    test_dataset = Dataset.from_frame(test_interactions, encoder=encoder)
+    dataset = Dataset.from_frame(interactions)
+    assert dataset.interactions.shape == train_dataset.interactions.shape
+    assert dataset.interactions.shape == test_dataset.interactions.shape
+
+
+@pytest.mark.usefixtures("sample_dataframes")
 def test_user_meta_item_end_to_end_mapping(sample_dataframes):
     df, user, item = sample_dataframes
 
@@ -91,18 +72,3 @@ def test_user_meta_item_end_to_end_mapping(sample_dataframes):
 
 
 # encoder
-def test_fit_user_item(sample_dataset):
-    d = DatasetEncoder()
-    assert d.fit(users=sample_dataset[:, 0],
-                 items=sample_dataset[:, 1]) == d
-
-
-def test_fit_transform_user_item(sample_dataset):
-    d = DatasetEncoder()
-    d.fit_transform(users=sample_dataset[:, 0],
-                    items=sample_dataset[:, 1])
-
-
-def test_fit_reversible_user_item(sample_dataset):
-    d = DatasetEncoder()
-    d.fit(sample_dataset)

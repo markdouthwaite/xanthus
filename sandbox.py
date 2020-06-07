@@ -4,7 +4,7 @@ import numpy as np
 from xanthus.dataset import Dataset, DatasetEncoder
 
 
-movies = pd.read_csv("data/movielens-1m/movies.dat", delimiter="::")
+movies = pd.read_csv("data/movielens-1m/movies.dat", delimiter="::", names=["movieId", "title", "genres"])
 interactions = pd.read_csv("data/movielens-1m/ratings.dat", delimiter="::", names=["userId", "movieId", "rating", "timestamp"])
 
 new_dataset = []
@@ -35,7 +35,7 @@ dataset = Dataset.from_frame(interactions, item_meta=movies)
 print(dataset.interactions.shape)
 
 t1 = time.time()
-print(dataset.to_arrays(output_dim=5))
+print(dataset.to_arrays(output_dim=5, negative_samples=2))
 t2 = time.time()
 
 print("load", t1 - t0)

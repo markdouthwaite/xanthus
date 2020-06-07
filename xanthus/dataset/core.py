@@ -40,8 +40,8 @@ class Dataset:
         ratings = open(os.path.join(dir, "ratings.txt"), "ab")
 
         for user, item, rating in self.iter(*args, **kwargs):
-            np.savetxt(users, user, fmt="%i")
-            np.savetxt(items, item, fmt="%i")
+            np.savetxt(users, np.atleast_2d(user), fmt="%i", delimiter=" ")
+            np.savetxt(items, np.atleast_2d(item), fmt="%i", delimiter=" ")
             np.savetxt(ratings, np.atleast_1d(rating))
         users.close()
         items.close()
@@ -173,16 +173,28 @@ class Dataset:
         )
 
         if user_meta is not None:
+            user_meta_shape = (
+                len(encoder.user_mapping) + 1,
+                len(encoder.user_tag_mapping) + 1,
+            )
             encoded = encoder.transform(
                 users=user_meta["user"], user_tags=user_meta["tag"]
             )
-            user_meta = construct_coo_matrix(encoded["users"], encoded["user_features"])
+            user_meta = construct_coo_matrix(
+                encoded["users"], encoded["user_features"], shape=user_meta_shape
+            )
 
         if item_meta is not None:
+            item_meta_shape = (
+                len(encoder.item_mapping) + 1,
+                len(encoder.item_tag_mapping) + 1,
+            )
             encoded = encoder.transform(
                 items=item_meta["item"], item_tags=item_meta["tag"]
             )
-            item_meta = construct_coo_matrix(encoded["items"], encoded["item_features"])
+            item_meta = construct_coo_matrix(
+                encoded["items"], encoded["item_features"], shape=item_meta_shape
+            )
 
         return cls(
             interactions, user_meta=user_meta, item_meta=item_meta, encoder=encoder

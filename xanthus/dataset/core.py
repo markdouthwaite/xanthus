@@ -183,16 +183,19 @@ class Dataset:
     ) -> Tuple[ndarray, ...]:
         return tuple(map(np.asarray, zip(*self.iter(*args, **kwargs))))
 
-    def to_txt(self, dir: str, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
-        os.makedirs(dir, exist_ok=True)
-        users = open(os.path.join(dir, "user.txt"), "ab")
-        items = open(os.path.join(dir, "item.txt"), "ab")
-        ratings = open(os.path.join(dir, "ratings.txt"), "ab")
+    def to_txt(
+        self, dirname: str, *args: Optional[Any], **kwargs: Optional[Any]
+    ) -> None:
+        os.makedirs(dirname, exist_ok=True)
+        users = open(os.path.join(dirname, "user.txt"), "ab")
+        items = open(os.path.join(dirname, "item.txt"), "ab")
+        ratings = open(os.path.join(dirname, "ratings.txt"), "ab")
 
         for user, item, rating in self.iter(*args, **kwargs):
             np.savetxt(users, np.atleast_2d(user), fmt="%i", delimiter=" ")
             np.savetxt(items, np.atleast_2d(item), fmt="%i", delimiter=" ")
             np.savetxt(ratings, np.atleast_1d(rating))
+
         users.close()
         items.close()
         ratings.close()

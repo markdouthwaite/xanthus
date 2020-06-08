@@ -1,3 +1,9 @@
+"""
+The MIT License
+
+Copyright (c) 2018-2020 Mark Douthwaite
+"""
+
 from typing import Optional, Any, List, Dict
 
 import numpy as np

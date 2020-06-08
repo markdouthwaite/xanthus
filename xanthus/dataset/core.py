@@ -25,28 +25,6 @@ class Dataset:
         self.user_meta = user_meta
         self.item_meta = item_meta
 
-    def __iter__(self) -> Generator:
-        yield from self.iter()
-
-    def to_arrays(
-        self, *args: Optional[Any], **kwargs: Optional[Any]
-    ) -> Tuple[ndarray, ...]:
-        return tuple(map(np.asarray, zip(*self.iter(*args, **kwargs))))
-
-    def to_txt(self, dir: str, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
-        os.makedirs(dir, exist_ok=True)
-        users = open(os.path.join(dir, "user.txt"), "ab")
-        items = open(os.path.join(dir, "item.txt"), "ab")
-        ratings = open(os.path.join(dir, "ratings.txt"), "ab")
-
-        for user, item, rating in self.iter(*args, **kwargs):
-            np.savetxt(users, np.atleast_2d(user), fmt="%i", delimiter=" ")
-            np.savetxt(items, np.atleast_2d(item), fmt="%i", delimiter=" ")
-            np.savetxt(ratings, np.atleast_1d(rating))
-        users.close()
-        items.close()
-        ratings.close()
-
     def iter(
         self, negative_samples: int = 0, output_dim: int = 1, shuffle: bool = True
     ) -> Generator:
@@ -199,3 +177,25 @@ class Dataset:
         return cls(
             interactions, user_meta=user_meta, item_meta=item_meta, encoder=encoder
         )
+
+    def to_arrays(
+        self, *args: Optional[Any], **kwargs: Optional[Any]
+    ) -> Tuple[ndarray, ...]:
+        return tuple(map(np.asarray, zip(*self.iter(*args, **kwargs))))
+
+    def to_txt(self, dir: str, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+        os.makedirs(dir, exist_ok=True)
+        users = open(os.path.join(dir, "user.txt"), "ab")
+        items = open(os.path.join(dir, "item.txt"), "ab")
+        ratings = open(os.path.join(dir, "ratings.txt"), "ab")
+
+        for user, item, rating in self.iter(*args, **kwargs):
+            np.savetxt(users, np.atleast_2d(user), fmt="%i", delimiter=" ")
+            np.savetxt(items, np.atleast_2d(item), fmt="%i", delimiter=" ")
+            np.savetxt(ratings, np.atleast_1d(rating))
+        users.close()
+        items.close()
+        ratings.close()
+
+    def __iter__(self) -> Generator:
+        yield from self.iter()

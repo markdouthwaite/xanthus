@@ -1,3 +1,9 @@
+"""
+The MIT License
+
+Copyright (c) 2018-2020 Mark Douthwaite
+"""
+
 from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.layers import (
     Dense,

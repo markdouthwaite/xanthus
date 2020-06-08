@@ -1,3 +1,9 @@
+"""
+The MIT License
+
+Copyright (c) 2018-2020 Mark Douthwaite
+"""
+
 from typing import Optional, Union, List, Set, Generator, Tuple
 from itertools import islice
 

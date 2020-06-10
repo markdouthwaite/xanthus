@@ -60,11 +60,11 @@ def split(
         The minimum number of interactions a user must have had in order to appear in
         the output training data.
     frac_ignored_users: float
-        The fraction of users to be ignored. This can be useful to reduce the size of
-        large datasets for training purposes.
+        An approximate fraction of users to be ignored. This can be useful to reduce the
+        size of large datasets for training purposes.
     frac_ignored_items: float
-        The fraction of items to be ignored. This can be useful to reduce the size of
-        large datasets for training purposes.
+        An approximate fraction of items to be ignored. This can be useful to reduce the
+        size of large datasets for training purposes.
     deduplicate: bool
         Indicate whether to deduplicate interactions (i.e. interactions with the same
         'user' and 'item'). Default is 'True'.

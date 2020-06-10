@@ -7,9 +7,9 @@ from xanthus.evaluate.utils import split
 
 np.random.seed(42)
 
-n_users = 5000000
+n_users = 50000
 n_items = 10000
-n_trans = 10000000
+n_trans = 100000
 users = np.asarray([uuid.uuid4().hex for _ in range(n_users)])
 items = np.asarray([uuid.uuid4().hex for _ in range(n_items)])
 

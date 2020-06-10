@@ -91,12 +91,9 @@ def test_split_min_records(small_split_dataset):
 
 
 def test_split_ignore_users(small_split_dataset):
+    frac = 0.5
     train, test = utils.split(
-        small_split_dataset, frac_train=0.75, frac_ignored_users=0.2
+        small_split_dataset, frac_train=0.75, frac_ignored_users=frac
     )
 
-    print(train)
-    print(test)
-
-    # # user '4' appears once, check it doesn't exist
-    # assert (train["user"] == "4").sum() == 0
+    assert len(train) + len(test) <= int(frac*len(small_split_dataset))

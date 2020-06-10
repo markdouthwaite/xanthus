@@ -46,7 +46,7 @@ def test_fit_reversible_user_item_transform(sample_dataset):
 
 def test_partial_fit_item_user_succeeds(sample_dataset):
     users, items = sample_dataset[:, 0], sample_dataset[:, 1]
-    n = int(users.shape[0]/2)
+    n = int(users.shape[0] / 2)
 
     a_users, a_items = users[:n], items[:n]
     b_users, b_items = users[n:], items[n:]
@@ -66,7 +66,7 @@ def test_partial_fit_item_user_succeeds(sample_dataset):
 
 def test_transform_fails_for_unknown_elements(sample_dataset):
     users, items = sample_dataset[:, 0], sample_dataset[:, 1]
-    n = int(users.shape[0]/4)
+    n = int(users.shape[0] / 4)
 
     with pytest.raises(KeyError):
         a_users, a_items = users[:n], items[:n]
@@ -76,5 +76,3 @@ def test_transform_fails_for_unknown_elements(sample_dataset):
         d.fit(users=a_users, items=a_items)
 
         d.transform(users=b_users, items=b_items)
-
-

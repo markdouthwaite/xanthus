@@ -51,8 +51,8 @@ def test_consistent_interactions_size_for_split_datasets(sample_dataframes):
     encoder = DatasetEncoder()
     encoder.fit(interactions["user"], interactions["item"])
 
-    train_interactions = interactions.iloc[:int(len(interactions) / 2)]
-    test_interactions = interactions.iloc[:int(len(interactions) / 2)]
+    train_interactions = interactions.iloc[: int(len(interactions) / 2)]
+    test_interactions = interactions.iloc[: int(len(interactions) / 2)]
 
     train_dataset = Dataset.from_frame(train_interactions, encoder=encoder)
     test_dataset = Dataset.from_frame(test_interactions, encoder=encoder)

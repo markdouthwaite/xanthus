@@ -13,14 +13,21 @@ from tensorflow.keras.layers import (
     Add,
     Dot,
     Concatenate,
+    Multiply,
 )
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.initializers import RandomNormal, lecun_uniform
 
 
 def get_embedding_block(
-    n_vocab, n_dim, n_factors, reg=0.0, initializer="he_normal", inputs=None
+    n_vocab,
+    n_dim,
+    n_factors,
+    reg=0.0,
+    initializer=RandomNormal(stddev=0.01),
+    inputs=None,
 ):
     inputs = inputs if inputs is not None else Input(shape=(n_dim,))
     embedding = Embedding(
@@ -104,15 +111,16 @@ def get_mlp_model(
     return Model(inputs=[user_input, item_input], outputs=output)
 
 
-def get_mf_model(n_users, n_items, n_user_dim=1, n_item_dim=1, n_factors=50):
+def get_mf_model(n_users, n_items, n_user_dim=1, n_item_dim=1, n_factors=50, **kwargs):
     user_input, user_bias, user_factors = get_embedding_block(
-        n_users, n_user_dim, n_factors
+        n_users, n_user_dim, n_factors, **kwargs
     )
     item_input, item_bias, item_factors = get_embedding_block(
-        n_items, n_item_dim, n_factors
+        n_items, n_item_dim, n_factors, **kwargs
     )
-    body = Dot(-1)([user_factors, item_factors])
-    body = Add()([body, user_bias, item_bias])
-    output = Dense(1, activation="sigmoid")(body)
+    # body = Dot(-1)([user_factors, item_factors])
+    # body = Add()([body, user_bias, item_bias])
+    body = Multiply()([user_factors, item_factors])
+    output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(body)
 
     return Model(inputs=[user_input, item_input], outputs=output)

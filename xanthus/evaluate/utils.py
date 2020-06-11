@@ -1,10 +1,12 @@
 import warnings
-from typing import Tuple
+from typing import Tuple, List
 
 from pandas import DataFrame, concat
 
-from numpy import in1d, concatenate, ndarray
+from numpy import in1d, concatenate, ndarray, split as _split, cumsum, unique
 from numpy.random import choice
+
+from ..dataset import Dataset
 
 
 def _ignore(df: DataFrame, elements: ndarray, key: str, frac: float) -> DataFrame:
@@ -18,9 +20,29 @@ def _ignore(df: DataFrame, elements: ndarray, key: str, frac: float) -> DataFram
     return df
 
 
+def leave_one_out(
+    df,
+    shuffle=True,
+    frac_ignored_users: float = 0.0,
+    frac_ignored_items: float = 0.0,
+    deduplicate: bool = True,
+) -> Tuple[DataFrame, ...]:
+    """
+    Wraps the 'split' function to produce leave-one-out evaluation protocol.
+    """
+
+    return split(
+        df,
+        shuffle=shuffle,
+        frac_ignored_users=frac_ignored_users,
+        frac_ignored_items=frac_ignored_items,
+        deduplicate=deduplicate,
+    )
+
+
 def split(
     df: DataFrame,
-    frac_train: float,
+    frac_train: float = 0.0,
     shuffle: bool = True,
     n_test: int = 1,
     min_records: int = 1,
@@ -32,6 +54,10 @@ def split(
     A recommendation system focused train-test split utility function.
 
     This function was inspired by the Azure ML Studio 'recommender split' utility [1].
+
+    Using default parameters, this function implements the 'leave-one-out' sampling
+    approach, whereby a single record from each user is withheld for evaluation
+    purposes, and all others included in the training set.
 
     Parameters
     ----------
@@ -45,7 +71,7 @@ def split(
         None of these users will appear in the test set. The remaining fraction of users
         will be considered 'test candidates', and will be sampled to create the output
         test set, and users in this 'test candidate' set may appear in _both_ the train
-        and test set.
+        and test set. By default, all users will appear in the test set (frac_train=0).
     shuffle: bool
         Indicate whether the dataset should be shuffled.
     n_test: int
@@ -81,8 +107,8 @@ def split(
     Notes
     -----
     * Benchmarks:
-      (0 on 1m records, 500k users, 10k items - ~3s
-      (1 on 10m records, 5m users, 10k items - ~58s
+      (0 on 1m records, 500k users, 10k items - ~5s
+      (1 on 10m records, 5m users, 10k items - ~60s
       (2 on 20m records, 10m users, 10k items - ~150s
     * Scales roughly linearly in the number of records.
 
@@ -157,3 +183,50 @@ def split(
     train_df = concat([train_df, aux_train_df])
 
     return train_df[columns], test_df[columns]
+
+
+def he_sampling(
+    a: Dataset, b: Dataset, n_samples: int = 100
+) -> Tuple[ndarray, List[List[ndarray]]]:
+    """
+    Sample a dataset 'a' with 'n' negative samples given interactions in dataset 'a'
+    and 'b'.
+
+    Practically, this function allows you to generate evaluation data as described in
+    the work of He et al. [1]. The evaluation procedure assumes that the input datasets
+    'a' and 'b' have been generated with a leave 'n' out policy, such that dataset 'b'
+    corresponds to the 'training' dataset (i.e. dataset with 'left out' samples removed)
+    and 'a' corresponds to the 'test' dataset with 'n' for each user with
+    n_interactions > n. For each user in 'a', the function will return that user's 'n'
+    left-out interactions, plus 'n_samples' negative samples (items the user has not
+    interacted with in both the 'train' and 'test' datasets.
+
+    Parameters
+    ----------
+    a: Dataset
+        The 'test' dataset (the dataset you wish to use for evaluation).
+    b: Dataset
+        The 'train' dataset (the dataset you wish to include for purposes of sampling
+        items the user has not interacted with -- negative samples).
+    n_samples: int
+        The total number of negative samples per user to generate. For example, if the
+        dataset 'a' was generated from a leave-one-out split, and n_samples=100, that
+        user would receive 101 samples.
+
+    Returns
+    -------
+    output: (ndarray, List[ndarray])
+        The first element corresponds to an array of _ordered_ user ids, the second
+        the per-user samples.
+
+    References
+    ----------
+    [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
+
+    """
+
+    users, items, ratings = a.to_arrays(
+        negative_samples=n_samples, aux_matrix=b.interactions.tocsr()
+    )
+    grouped = _split(items, cumsum(unique(users, return_counts=True)[1])[:-1])
+    return unique(users), grouped

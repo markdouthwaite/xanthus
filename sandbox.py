@@ -1,30 +1,33 @@
-import time
-import uuid
+from typing import List, Tuple
+
+import fire
+
 import numpy as np
+from numpy import ndarray
 import pandas as pd
 
-from xanthus.evaluate.utils import split
+from xanthus.evaluate import split, score, metrics, he_sampling
+from xanthus.dataset import DatasetEncoder, Dataset
 
 np.random.seed(42)
 
-n_users = 50000
-n_items = 10000
-n_trans = 100000
-users = np.asarray([uuid.uuid4().hex for _ in range(n_users)])
-items = np.asarray([uuid.uuid4().hex for _ in range(n_items)])
 
-trans = np.c_[
-    np.random.choice(users, size=n_trans),
-    np.random.choice(items, size=n_trans),
-]
+def main():
+    # df = pd.read_csv("data/movielens-1m/ratings.dat", delimiter="::", names=["userId", "movieId", "rating", "timestamp"],)
+    df = pd.read_csv("data/movielens-100k/ratings.csv")
 
-df = pd.DataFrame(data=trans, columns=["user", "item"])
-print(df.shape)
-df = df.drop_duplicates()
-print(df.shape)
-print("Done...")
-t1 = time.time()
-split(df, frac_train=0.75, n_test=1)
-t2 = time.time()
+    df = df.rename(columns={"userId": "user", "movieId": "item"})
 
-print(t2 - t1)
+    encoder = DatasetEncoder()
+    encoder.partial_fit(df["user"], df["item"])
+
+    train, test = split(df, n_test=1)
+
+    train_dataset = Dataset.from_frame(train, encoder=encoder)
+    test_dataset = Dataset.from_frame(test, encoder=encoder)
+
+    users, items = he_sampling(test_dataset, train_dataset, n_samples=100)
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

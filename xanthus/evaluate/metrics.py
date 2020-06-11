@@ -10,13 +10,13 @@ from functools import partial
 
 from typing import List, Callable, Tuple, Any, Optional
 
-from numpy import asarray, isin, unique
+from numpy import asarray, isin, unique, ndarray
 
 
 def _parfn(fn: Callable[[List[int], List[int]], float], args: Tuple[Any]) -> float:
     """
     A utility function for unpacking arguments when a function is called inside a
-    parallel map.
+    parallel map. You can't pickle lambdas!
     """
     return fn(*args)
 
@@ -27,7 +27,7 @@ def score(
     predicted: List[List[int]],
     n_cpu: int = -1,
     **kwargs: Optional[Any],
-) -> List[float]:
+) -> ndarray:
     """
     Score a set of predicted documents (e.g. recommendations) against 'actual' relevant
     documents (e.g. held-out transaction history).
@@ -72,11 +72,12 @@ def score(
         )
 
     if n_cpu <= 2:
-        return [fn(a, p, **kwargs) for a, p in zip(actual, predicted)]
+        output = [fn(a, p, **kwargs) for a, p in zip(actual, predicted)]
     else:
         pool = mp.Pool(processes=n_cpu)
-        results = pool.map(partial(_parfn, fn, **kwargs), zip(actual, predicted))
-        return results
+        output = pool.map(partial(_parfn, fn, **kwargs), zip(actual, predicted))
+
+    return asarray(output)
 
 
 def coverage_at_k(actual: List[int], predicted: List[List[int]], k) -> float:
@@ -90,7 +91,7 @@ def coverage_at_k(actual: List[int], predicted: List[List[int]], k) -> float:
     Parameters
     ----------
     actual: list, array-like
-        An array of containing relevant documents (e.g. 'actual' user activity).
+        An array of containing all documents in a set/catalog.
     predicted: list, array-like
         An array of containing lists of predicted documents (e.g. recommendations).
     k: int
@@ -130,8 +131,8 @@ def precision_at_k(actual: List[int], predicted: List[int], k: int = 6) -> float
 
     References
     ----------
-        [1] https://github.com/benhamner/Metrics/blob/master/Python/ml_metrics/
-        [2] https://en.wikipedia.org/wiki/Precision_and_recall#Precision
+    [1] https://github.com/benhamner/Metrics/blob/master/Python/ml_metrics/
+    [2] https://en.wikipedia.org/wiki/Precision_and_recall#Precision
 
     """
 
@@ -146,7 +147,7 @@ def precision_at_k(actual: List[int], predicted: List[int], k: int = 6) -> float
 
 
 def normalized_discounted_cumulative_gain(
-    actual: List[int], predicted: List[int],
+    actual: List[int], predicted: List[int], k: int,
 ) -> float:
     """
     Compute the nDCG for a set of documents assuming binary relevance scores (i.e.
@@ -185,6 +186,8 @@ def normalized_discounted_cumulative_gain(
         An array of containing relevant documents (e.g. 'actual' user activity).
     predicted: list, array-like
         An array of containing predicted documents (e.g. recommendations).
+    k: int
+        The total number of predicted results to consider.
 
     Returns
     -------
@@ -193,14 +196,14 @@ def normalized_discounted_cumulative_gain(
 
     References
     ----------
-        [1] https://en.wikipedia.org/wiki/Discounted_cumulative_gain
+    [1] https://en.wikipedia.org/wiki/Discounted_cumulative_gain
 
     """
 
     dcg: float = 0.0
     idcg: float = 0.0
-    for i, _ in enumerate(predicted):
-        dcg_i = 1 / math.log(i + 2)
+    for i, _ in enumerate(predicted[:k]):
+        dcg_i = 1.0 / math.log(i + 2)
 
         if _ in actual:
             dcg += dcg_i

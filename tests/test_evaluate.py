@@ -96,4 +96,4 @@ def test_split_ignore_users(small_split_dataset):
         small_split_dataset, frac_train=0.75, frac_ignored_users=frac
     )
 
-    assert len(train) + len(test) <= int(frac*len(small_split_dataset))
+    assert len(train) + len(test) <= int(frac * len(small_split_dataset))

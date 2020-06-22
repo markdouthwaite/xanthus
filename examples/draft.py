@@ -73,19 +73,20 @@ class GMFModel:
         params = {k: v for k, v in self._kwargs.items() if k != "epochs"}
 
         for i in range(epochs):
-            user_x, item_x, y = dataset.to_arrays(
-                negative_samples=self._neg,
-            )
+            user_x, item_x, y = dataset.to_arrays(negative_samples=self._neg,)
 
             tu, vu, ti, vi, ty, vy = train_test_split(
                 user_x, item_x, y, test_size=self._val_split, shuffle=True
             )
 
-            model.fit([tu, ti], ty,
-                      epochs=i+1,
-                      initial_epoch=i,
-                      **params,
-                      validation_data=([vu, vi], vy))
+            model.fit(
+                [tu, ti],
+                ty,
+                epochs=i + 1,
+                initial_epoch=i,
+                **params,
+                validation_data=([vu, vi], vy)
+            )
 
         self._model = model
         return self
@@ -99,8 +100,6 @@ class GMFModel:
             x = [np.asarray([user] * len(items)), items]
             h = self._model(x).numpy().flatten()
             ranked = h.argsort()[::-1]
-
-            ranked = items[ranked]
 
             recommended.append(rank(h, n, r=items))
 

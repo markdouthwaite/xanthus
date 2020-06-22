@@ -13,7 +13,11 @@ from typing import List, Callable, Tuple, Any, Optional
 from numpy import asarray, isin, unique, ndarray
 
 
-def _parfn(fn: Callable[[List[int], List[int]], float], args: Tuple[Any], **kwargs: Optional[Any]) -> float:
+def _parfn(
+    fn: Callable[[List[int], List[int]], float],
+    args: Tuple[Any],
+    **kwargs: Optional[Any],
+) -> float:
     """
     A utility function for unpacking arguments when a function is called inside a
     parallel map. You can't pickle lambdas!
@@ -46,7 +50,7 @@ def score(
         object containing up to 'M' relevant documents, and a second array-like object
         containing 'K' predicted relevant documents.
     actual: array-like
-        An array-like object where each element contains up to 'M' elements. Not that
+        An array-like object where each element contains up to 'M' elements. Note that
         this means this object may contain elements that are different lengths. This
         is expected. These are collections of relevant documents.
     predicted: array-like

@@ -16,7 +16,7 @@ def sample_dataset():
 
 
 @pytest.fixture
-def sample_dataframes(k=1000):
+def sample_dataframes(k=10000):
     a = [uuid.uuid4().hex[:10] for _ in range(1000)]
     b = [uuid.uuid4().hex[:10] for _ in range(500)]
     a_m = [uuid.uuid4().hex[:4] for _ in range(10)]

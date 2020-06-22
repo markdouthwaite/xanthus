@@ -9,10 +9,11 @@ import random
 
 import pytest
 
-from numpy import isclose, unique, all
+from numpy import isclose, unique, all, intersect1d, ones_like
 from pandas import DataFrame
 
-from xanthus.evaluate import score, ndcg, utils
+from xanthus.dataset import DatasetEncoder, Dataset, groupby
+from xanthus.evaluate import score, ndcg, utils, he_sampling, split
 
 
 @pytest.fixture
@@ -87,6 +88,35 @@ def test_split_output_correctness(small_split_dataset):
         other = test[test["user"] == user]
         if other.shape[0] > 0:
             assert len(other.merge(group)) == len(other)
+
+
+def test_he_sampling_correctness(sample_dataframes):
+    df, _, _ = sample_dataframes
+
+    df = df.drop_duplicates()
+
+    encoder = DatasetEncoder()
+    encoder.fit(df["user"], df["item"])
+
+    train, test = split(df, n_test=1)
+
+    dataset = Dataset.from_df(df, encoder=encoder, normalize=lambda _: ones_like(_))
+
+    train_dataset = Dataset.from_df(
+        train, encoder=encoder, normalize=lambda _: ones_like(_)
+    )
+    test_dataset = Dataset.from_df(
+        test, encoder=encoder, normalize=lambda _: ones_like(_)
+    )
+
+    users, items = he_sampling(test_dataset, train_dataset)
+
+    a, b, _ = dataset.to_arrays()
+    all_users, all_items = groupby(a, b)
+
+    for i in range(len(items)):
+        # items includes no more than one element from 'all_items'.
+        assert len(intersect1d(items[i], all_items[i])) == 1
 
 
 def test_split_min_records(small_split_dataset):

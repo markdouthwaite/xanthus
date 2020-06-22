@@ -8,7 +8,16 @@ from typing import Optional, Union, List, Set, Iterator, Tuple, Any
 from itertools import islice
 
 from scipy.sparse import coo_matrix, csr_matrix, dok_matrix
-from numpy import random, ones_like, ndarray
+from numpy import (
+    random,
+    ones_like,
+    ndarray,
+    c_,
+    split as _split,
+    argsort,
+    cumsum,
+    unique,
+)
 
 
 def construct_coo_matrix(
@@ -73,9 +82,7 @@ def rejection_sample(p: int, q: Union[List, Set]) -> Iterator[int]:
             sampled.add(choice)
 
 
-def relative_rejection_sample(
-    p: int, q: Union[List, Set], k: int,
-) -> Iterator[int]:
+def relative_rejection_sample(p: int, q: Union[List, Set], k: int,) -> Iterator[int]:
     """
     Sample without replacement from a set of 'p' items that are not in set 'q', where
     the number of samples 'k' is drawn for each element in the set 'q'
@@ -186,3 +193,14 @@ def sample_negatives(
     yield from (
         (i, z) for i in ids for z in single_negative_sample(i, mat, k, **kwargs)
     )
+
+
+def groupby(a: ndarray, b: ndarray) -> Tuple[ndarray, List[ndarray]]:
+    x = c_[a, b]
+    ind = argsort(x[:, 0])
+    x = x[ind]
+
+    groups, counts = unique(x[:, 0], return_counts=True)
+    grouped = _split(x[:, 1], cumsum(counts)[:-1])
+
+    return groups, grouped

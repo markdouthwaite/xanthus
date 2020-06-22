@@ -14,9 +14,11 @@ Metric = Callable[[List[int], List[int], Optional[Any]], float]
 
 
 class RecommenderModel(ABC):
+    """A simple recommender model interface."""
+
     @abstractmethod
     def fit(self, dataset: Dataset) -> "RecommenderModel":
-        """"""
+        """Fit the model on the provided dataset."""
 
     @abstractmethod
     def predict(
@@ -28,7 +30,35 @@ class RecommenderModel(ABC):
         excluded: Optional[List[int]] = None,
         **kwargs: Optional[Any],
     ) -> List[List[int]]:
-        """"""
+        """
+        Generate 'n' predictions for the given dataset (and optionally, provided users
+        and items).
+
+        Parameters
+        ----------
+        dataset: Dataset
+            The dataset to be used for generating recommendations.
+        users: list, optional
+            An optional list of users for whom you wish to generate recommendations.
+        items: list, optional
+            An optional list of items for which you wish to generate recommendations.
+            This should map to individual users (either those in 'users' or in
+            dataset.all_users).
+        n: int
+            The total number of recommendations for each user.
+        excluded: list, optional
+            An optional list of items to exclude from recommendations.
+        kwargs: any, optional
+            Additional predict params.
+
+        Returns
+        -------
+        output: list
+            A list, where each element corresponds to a list of recommendations. If a
+            list of 'users' was provided, this will be ordered by this list. If 'users'
+            are not provided, it will be ordered by 'dataset.all_users'.
+
+        """
 
     # @abstractmethod
     # def save(self, filepath: str) -> None:

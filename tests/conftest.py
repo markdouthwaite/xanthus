@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 
-np.random.seed(42)
+np.random.seed(0)
 
 
 @pytest.fixture

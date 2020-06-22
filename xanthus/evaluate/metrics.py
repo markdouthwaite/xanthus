@@ -13,12 +13,13 @@ from typing import List, Callable, Tuple, Any, Optional
 from numpy import asarray, isin, unique, ndarray
 
 
-def _parfn(fn: Callable[[List[int], List[int]], float], args: Tuple[Any]) -> float:
+def _parfn(fn: Callable[[List[int], List[int]], float], args: Tuple[Any], **kwargs: Optional[Any]) -> float:
     """
     A utility function for unpacking arguments when a function is called inside a
     parallel map. You can't pickle lambdas!
     """
-    return fn(*args)
+
+    return fn(*args, **kwargs)
 
 
 def score(
@@ -80,7 +81,7 @@ def score(
     return asarray(output)
 
 
-def coverage_at_k(actual: List[int], predicted: List[List[int]], k) -> float:
+def coverage_at_k(actual: List[int], predicted: List[List[int]], k: int = 10) -> float:
     """
     Compute the coverage at k (c@k) for a given set of documents (actual) given all
     predictions.
@@ -95,7 +96,7 @@ def coverage_at_k(actual: List[int], predicted: List[List[int]], k) -> float:
     predicted: list, array-like
         An array of containing lists of predicted documents (e.g. recommendations).
     k: int
-        The total number of predicted results to consider.
+        The total number of predicted results to consider. Default 10.
 
     Returns
     -------
@@ -108,7 +109,7 @@ def coverage_at_k(actual: List[int], predicted: List[List[int]], k) -> float:
     return n / len(actual)
 
 
-def precision_at_k(actual: List[int], predicted: List[int], k: int = 6) -> float:
+def precision_at_k(actual: List[int], predicted: List[int], k: int = 10) -> float:
     """
     Compute the precision at k (p@k) for a given set of documents.
 
@@ -122,7 +123,7 @@ def precision_at_k(actual: List[int], predicted: List[int], k: int = 6) -> float
     predicted: list, array-like
         An array of containing predicted documents (e.g. recommendations).
     k: int
-        The total number of predicted results to consider.
+        The total number of predicted results to consider. Default 10.
 
     Returns
     -------
@@ -138,16 +139,16 @@ def precision_at_k(actual: List[int], predicted: List[int], k: int = 6) -> float
 
     hits: float = 0.0
 
-    for i, _ in enumerate(predicted[:k]):
+    for element in predicted[:k]:
 
-        if _ in actual:
+        if element in actual:
             hits += 1.0
 
     return hits / min(len(actual), k)
 
 
 def normalized_discounted_cumulative_gain(
-    actual: List[int], predicted: List[int], k: int,
+    actual: List[int], predicted: List[int], k: int = 10,
 ) -> float:
     """
     Compute the nDCG for a set of documents assuming binary relevance scores (i.e.
@@ -187,7 +188,7 @@ def normalized_discounted_cumulative_gain(
     predicted: list, array-like
         An array of containing predicted documents (e.g. recommendations).
     k: int
-        The total number of predicted results to consider.
+        The total number of predicted results to consider. Default 10.
 
     Returns
     -------
@@ -213,6 +214,7 @@ def normalized_discounted_cumulative_gain(
     return dcg / idcg
 
 
+# aliases
 cak = coverage_at_k
 pak = precision_at_k
 ndcg = normalized_discounted_cumulative_gain

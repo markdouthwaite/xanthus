@@ -24,8 +24,8 @@ def main(k: int = 10, sampling: str = "uniform", alpha: float = 10.0) -> None:
 
     train, test = split(df, frac_train=0.75, n_test=10)
 
-    train_dataset = Dataset.from_frame(train, encoder=encoder)
-    test_dataset = Dataset.from_frame(test, encoder=encoder)
+    train_dataset = Dataset.from_df(train, encoder=encoder)
+    test_dataset = Dataset.from_df(test, encoder=encoder)
 
     model = PopRankModel(limit=k, sampling=sampling, alpha=alpha)
     model.fit(train_dataset)

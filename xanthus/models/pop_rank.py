@@ -35,7 +35,12 @@ class PopRankModel:
         return self
 
     def predict(
-        self, users: ndarray, exclude_items: Optional[ndarray] = None, n: int = 3
+        self,
+        _: Dataset,
+        users: ndarray,
+        items: Optional[ndarray] = None,
+        exclude_items: Optional[ndarray] = None,
+        n: int = 3,
     ) -> ndarray:
 
         if exclude_items is not None:
@@ -47,6 +52,9 @@ class PopRankModel:
                     f"Insufficient valid items available ({len(items)}, required {n})"
                     "after filtering excluded items."
                 )
+
+        elif items is not None:
+            items = self._ranked[np.isin(items, self._ranked)]
 
         else:
             items = self._ranked

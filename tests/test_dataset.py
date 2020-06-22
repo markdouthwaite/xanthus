@@ -17,7 +17,7 @@ def test_user_item_end_to_end_mapping(sample_dataframes):
 
     df = df.drop_duplicates(subset=["user", "item"]).sort_values(by="user")
 
-    dataset = Dataset.from_frame(df)
+    dataset = Dataset.from_df(df)
 
     users, items, ratings = dataset.to_arrays()
 
@@ -54,9 +54,9 @@ def test_consistent_interactions_size_for_split_datasets(sample_dataframes):
     train_interactions = interactions.iloc[: int(len(interactions) / 2)]
     test_interactions = interactions.iloc[: int(len(interactions) / 2)]
 
-    train_dataset = Dataset.from_frame(train_interactions, encoder=encoder)
-    test_dataset = Dataset.from_frame(test_interactions, encoder=encoder)
-    dataset = Dataset.from_frame(interactions)
+    train_dataset = Dataset.from_df(train_interactions, encoder=encoder)
+    test_dataset = Dataset.from_df(test_interactions, encoder=encoder)
+    dataset = Dataset.from_df(interactions)
     assert dataset.interactions.shape == train_dataset.interactions.shape
     assert dataset.interactions.shape == test_dataset.interactions.shape
 
@@ -65,7 +65,7 @@ def test_consistent_interactions_size_for_split_datasets(sample_dataframes):
 def test_user_meta_item_end_to_end_mapping(sample_dataframes):
     df, user, item = sample_dataframes
 
-    dataset = Dataset.from_frame(df, user, item)
+    dataset = Dataset.from_df(df, user, item)
     users, items, ratings = dataset.to_arrays(output_dim=4)
 
     print(users)

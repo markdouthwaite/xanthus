@@ -6,7 +6,7 @@ import pandas as pd
 from tensorflow.keras.optimizers import Adam, Adagrad
 from tensorflow.keras.losses import BinaryCrossentropy
 
-from xanthus.evaluate import split, score, metrics
+from xanthus.evaluate import split, score, metrics, he_sampling
 from xanthus.dataset import DatasetEncoder, Dataset
 from xanthus.models import utils
 
@@ -58,6 +58,7 @@ class GMFModel:
         mat = dataset.interactions.tocsr()
         for i, user in enumerate(dataset.users):
             x = [np.asarray([user] * len(items)), items]
+            print(x)
             h = self._model(x).numpy().flatten()
             ranked = h.argsort()[::-1]
             ranked = ranked[~np.isin(ranked, mat[user].nonzero()[1])]
@@ -74,10 +75,12 @@ def main(k=10):
     encoder = DatasetEncoder()
     encoder.partial_fit(df["user"], df["item"])
 
-    train, test = split(df, frac_train=0.0, n_test=1)
+    train, test = split(df, n_test=1)
 
-    train_dataset = Dataset.from_frame(train, encoder=encoder)
-    test_dataset = Dataset.from_frame(test, encoder=encoder)
+    train_dataset = Dataset.from_df(train, encoder=encoder, normalize=lambda _: np.ones_like(_))
+    test_dataset = Dataset.from_df(test, encoder=encoder, normalize=lambda _: np.ones_like(_))
+
+    users, items = he_sampling(test_dataset, train_dataset, n_samples=100)
 
     model = GMFModel(optimizer=Adam(lr=1e-3),
                      loss=BinaryCrossentropy(),
@@ -86,12 +89,9 @@ def main(k=10):
 
     model.fit(train_dataset)
 
-    recommended = model.predict(test_dataset.users, train_dataset)
+    recommended = model.predict(users, train_dataset, items=items)
 
-    print(np.unique(recommended).shape)
-    print(recommended[:10])
-
-    print(metrics.coverage_at_k(test_dataset.all_items, recommended, k=k))
+    # print(metrics.coverage_at_k(test_dataset.all_items, recommended, k=k))
     print(score(metrics.pak, test_dataset.history, recommended, k=k).mean())
     print(score(metrics.ndcg, test_dataset.history, recommended, k=k).mean())
 

@@ -5,7 +5,7 @@ Copyright (c) 2018-2020 Mark Douthwaite
 """
 
 import os
-from typing import Optional, Any, Generator, Tuple, Callable
+from typing import Optional, Any, Generator, Tuple, Callable, Iterator
 from collections import defaultdict
 
 from scipy.sparse import coo_matrix, csr_matrix
@@ -15,15 +15,13 @@ from pandas import DataFrame
 import numpy as np
 from .encoder import DatasetEncoder
 
-from .utils import sample_zeros, construct_coo_matrix
+from .utils import sample_negatives, construct_coo_matrix
 
 
 class Dataset:
     """
     A simple recommender dataset abstraction with utilities training and evaluating
     recommendation models.
-
-
 
     """
 
@@ -53,49 +51,99 @@ class Dataset:
     @property
     def users(self) -> ndarray:
         """Get all users _with interactions_ in the dataset."""
+
         return np.unique(self.interactions.nonzero()[0])
 
     @property
     def items(self) -> ndarray:
         """Get all items _with interactions_ in the dataset."""
+
         return np.unique(self.interactions.nonzero()[1])
 
     @property
-    def all_users(self):
+    def all_users(self) -> ndarray:
         """Get all users in the dataset (inc. those with no interactions)."""
+
         return np.arange(self.interactions.shape[0])
 
     @property
-    def all_items(self):
+    def all_items(self) -> ndarray:
         """Get all items in the dataset (inc. those with no interactions)."""
+
         return np.arange(self.interactions.shape[1])
 
     @property
-    def history(self):
+    def history(self) -> ndarray:
         """Get the history (items a user has interacted with) of each user."""
+
         mat = self.interactions.tocsr()
-        return [mat[i].nonzero()[1].tolist() for i in self.users]
+        g = (mat[i].nonzero()[1].tolist() for i in self.users)
+        return np.fromiter(g, dtype=int)
 
     def iter(
         self,
         negative_samples: int = 0,
         output_dim: int = 1,
         shuffle: bool = True,
-        aux_matrix: Optional[csr_matrix] = None,
-    ) -> Generator:
+        aux_matrix: Optional[coo_matrix] = None,
+        sampling_mode: str = "relative",
+    ) -> Iterator[Tuple[ndarray, ndarray, float]]:
         """
-        Iterate over a sequence of ([user_vector, item_vector], ratings).
+        Iterate over a sequence of ([user_vector_{i}, item_vector_{i}], ratings_{i}).
+
+        In practice, this will result in each user-item interaction being yielded,
+        optionally with additional metadata, and optionally with 'n' negative sample
+        instances.
+
+        By default (with 'output_dim=1', and/or with no metadata), this will yield:
+
+        ([user_{i}], [item_{i}}], ratings_{i})
+
+        Concretely, this may be: ([0], [1], 1) If user/item meta-data is provided, this
+        will be lazily injected into the yielded value, for example:
+
+        ([user_{i}, user_tag_{i}{1}, ..., user_tag_{i}{n}],
+         [item_{i}, item_tag_{i}{1}, ..., item_tag_{i}{n}],
+         ratings_{i})
+
+        Again, concretely: ([0, 21, 82], [1, 97, 64], 1). Make sure to set 'output_dim'
+        if you want your metadata rendered (if you provided it)!
 
         Parameters
         ----------
-        negative_samples
-        output_dim
-        shuffle
-        aux_matrix
+        negative_samples: int
+            The total number of negative samples (for each positive sample) you wish
+            to take from the provided interactions set (and auxiliary matrix, if
+            provided).
+        output_dim: int
+            The output dimensions for _both_ the encoded user- and item-vectors. Note
+            that this will only be applied if user/item metadata is provided, otherwise
+            all output vectors will have 'output_dim=1'.
+        shuffle: int
+            Indicate whether the output data should be shuffled.
+        aux_matrix: coo_matrix, optional
+            Provide a sparse matrix of the same shape as the 'interactions' matrix with
+            additional interactions terms. These terms will be used when taking negative
+            samples. This can be useful if this Dataset is a 'test' dataset, and you
+            wish to draw negative samples from items a user has never interacted with
+            when generating an evaluation set. This is the process described in [1].
+        sampling_mode: str
+            If negative sampling is used, specify the sampling mode you wish to use.
+            See 'xanthus.dataset.utils.single_negative_sample' for more details.
 
         Returns
         -------
         output: Generator
+            A generator yielding user/item vectors and the associated pairing's rating.
+
+        See Also
+        --------
+            xanthus.evaluate.utils.he_sample
+            xanthus.dataset.utils.single_negative_sample
+
+        References
+        ----------
+        [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
 
         """
 
@@ -125,7 +173,12 @@ class Dataset:
 
             # run sampling.
             users, items, ratings = self._concatenate_negative_samples(
-                users, items, ratings, interactions, negative_samples
+                users,
+                items,
+                ratings,
+                interactions,
+                negative_samples,
+                mode=sampling_mode,
             )
 
         # optionally shuffle the users, items and ratings.
@@ -154,7 +207,13 @@ class Dataset:
             yield user, item, rating
 
     def _concatenate_negative_samples(
-        self, users: ndarray, items: ndarray, ratings: ndarray, mat: csr_matrix, n: int
+        self,
+        users: ndarray,
+        items: ndarray,
+        ratings: ndarray,
+        mat: csr_matrix,
+        n: int,
+        **kwargs: Optional[Any]
     ) -> Tuple[ndarray, ...]:
         """
 
@@ -171,7 +230,7 @@ class Dataset:
 
         """
 
-        neg_users, neg_items, neg_ratings = self._sample_negatives(mat, n)
+        neg_users, neg_items, neg_ratings = self._sample_negatives(mat, n, **kwargs)
 
         users = np.concatenate((users, neg_users))
         items = np.concatenate((items, neg_items))
@@ -179,7 +238,9 @@ class Dataset:
 
         return users, items, ratings
 
-    def _sample_negatives(self, mat: csr_matrix, n: int) -> Tuple[ndarray, ...]:
+    def _sample_negatives(
+        self, mat: csr_matrix, n: int, **kwargs: Optional[Any]
+    ) -> Tuple[ndarray, ...]:
         """
 
         Parameters
@@ -191,8 +252,11 @@ class Dataset:
         -------
 
         """
+        # Todo: sample n negatives for each positive.
 
-        data = np.asarray(list(sample_zeros(self.users, mat, n))).astype(np.int32)
+        data = np.asarray(list(sample_negatives(self.users, mat, n, **kwargs))).astype(
+            np.int32
+        )
         return data[:, 0], data[:, 1], np.zeros(shape=data.shape[0])
 
     @staticmethod
@@ -223,7 +287,7 @@ class Dataset:
             yield features
 
     @classmethod
-    def from_frame(
+    def from_df(
         cls,
         interactions: DataFrame,
         user_meta: Optional[DataFrame] = None,
@@ -274,7 +338,6 @@ class Dataset:
             ratings = interactions["rating"].values.astype(np.float32)
 
         if normalize is not None:
-            # ratings = (ratings - ratings.min()) / (ratings.max() - ratings.min())
             ratings = normalize(ratings)
 
         interactions_shape = (

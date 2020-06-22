@@ -1,9 +1,24 @@
+"""
+The MIT License
+
+Copyright (c) 2018-2020 Mark Douthwaite
+"""
+
 import warnings
 from typing import Tuple, List
 
 from pandas import DataFrame, concat
 
-from numpy import in1d, concatenate, ndarray, split as _split, cumsum, unique
+from numpy import (
+    in1d,
+    concatenate,
+    ndarray,
+    split as _split,
+    cumsum,
+    unique,
+    argsort,
+    c_,
+)
 from numpy.random import choice
 
 from ..dataset import Dataset
@@ -226,7 +241,17 @@ def he_sampling(
     """
 
     users, items, ratings = a.to_arrays(
-        negative_samples=n_samples, aux_matrix=b.interactions.tocsr()
+        negative_samples=n_samples,
+        aux_matrix=b.interactions.tocsr(),
+        shuffle=False,
+        sampling_mode="absolute",
     )
-    grouped = _split(items, cumsum(unique(users, return_counts=True)[1])[:-1])
-    return unique(users), grouped
+
+    x = c_[users, items]
+    ind = argsort(x[:, 0])
+    x = x[ind]
+
+    unique_users, user_counts = unique(x[:, 0], return_counts=True)
+    grouped = _split(x[:, 1], cumsum(user_counts)[: -1])
+
+    return unique_users, grouped

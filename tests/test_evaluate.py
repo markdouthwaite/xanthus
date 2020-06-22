@@ -53,7 +53,7 @@ def test_parallel_ndcg_success():
 def test_ndcg_example():
     idcg = sum((1.0 / math.log(i + 2)) for i in range(4))
     dcg = idcg - (1.0 / math.log(3))
-    assert isclose(ndcg([0, 2, 3, 5, 7, 9], [5, 8, 3, 2]), (dcg / idcg))
+    assert isclose(ndcg([0, 2, 3, 5, 7, 9], [5, 8, 3, 2], k=6), (dcg / idcg))
 
 
 def test_split_output_shape(small_split_dataset):
@@ -82,6 +82,12 @@ def test_split_output_correctness(small_split_dataset):
         small_split_dataset["user"].isin(test["user"].unique()).sum() >= len(test) * 2
     )
 
+    # check each hold-out sample is original dataset for that user.
+    for user, group in small_split_dataset.groupby("user"):
+        other = test[test["user"] == user]
+        if other.shape[0] > 0:
+            assert len(other.merge(group)) == len(other)
+
 
 def test_split_min_records(small_split_dataset):
     train, test = utils.split(small_split_dataset, frac_train=0.75, min_records=2)
@@ -91,6 +97,8 @@ def test_split_min_records(small_split_dataset):
 
 
 def test_split_ignore_users(small_split_dataset):
+    # todo: unstable test - should pass for any seed (it doesn't currently).
+
     frac = 0.5
     train, test = utils.split(
         small_split_dataset, frac_train=0.75, frac_ignored_users=frac

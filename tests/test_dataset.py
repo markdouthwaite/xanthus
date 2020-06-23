@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from xanthus.dataset import DatasetEncoder, Dataset
+from xanthus.datasets import DatasetEncoder, Dataset
 
 
 def test_user_item_end_to_end_mapping(sample_dataframes):

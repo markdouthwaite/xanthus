@@ -44,7 +44,7 @@ class MatrixFactorizationModel:
         users = users if users is not None else dataset.users
         users = users.flatten()
 
-        user_items = dataset.interactions
+        user_items = dataset.interactions.tocsr()
 
         if items is None:
             rec = self._model.recommend

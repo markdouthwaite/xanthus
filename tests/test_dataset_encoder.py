@@ -8,7 +8,7 @@ import pytest
 
 import numpy as np
 
-from xanthus.dataset import DatasetEncoder
+from xanthus.datasets import DatasetEncoder
 
 
 def test_fit_user_item_succeeds(sample_dataset):

@@ -12,7 +12,7 @@ import pytest
 from numpy import isclose, unique, all, intersect1d, ones_like
 from pandas import DataFrame
 
-from xanthus.dataset import DatasetEncoder, Dataset, groupby
+from xanthus.datasets import DatasetEncoder, Dataset, groupby
 from xanthus.evaluate import score, ndcg, utils, he_sampling, split
 
 

@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any
 import numpy as np
 from numpy import ndarray
 
-from xanthus.dataset import Dataset
+from xanthus.datasets import Dataset
 
 
 class PopRankModel:

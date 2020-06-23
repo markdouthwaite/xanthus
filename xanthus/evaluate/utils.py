@@ -18,7 +18,7 @@ from numpy import (
 )
 from numpy.random import choice
 
-from ..dataset import Dataset, groupby
+from ..datasets import Dataset, groupby
 
 
 def _ignore(df: DataFrame, elements: ndarray, key: str, frac: float) -> DataFrame:

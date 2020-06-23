@@ -7,7 +7,7 @@ from tensorflow.keras import Model
 from tensorflow.keras.optimizers import Adam, Optimizer
 from tensorflow.keras.losses import BinaryCrossentropy, Loss
 
-from xanthus.dataset import Dataset
+from xanthus.datasets import Dataset
 
 
 Metric = Callable[[List[int], List[int], Optional[Any]], float]

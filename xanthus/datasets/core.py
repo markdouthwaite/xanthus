@@ -4,8 +4,7 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
-import os
-from typing import Optional, Any, Generator, Tuple, Callable, Iterator
+from typing import Optional, Any, List, Tuple, Callable, Iterator
 from collections import defaultdict
 
 from scipy.sparse import coo_matrix, csr_matrix
@@ -15,14 +14,14 @@ from pandas import DataFrame
 import numpy as np
 from .encoder import DatasetEncoder
 
-from .utils import sample_negatives, construct_coo_matrix
+
+from .utils import construct_coo_matrix, sample_negatives, SamplerCallable
 
 
 class Dataset:
     """
     A simple recommender dataset abstraction with utilities training and evaluating
     recommendation models.
-
     """
 
     def __init__(
@@ -31,6 +30,7 @@ class Dataset:
         user_meta: Optional[coo_matrix] = None,
         item_meta: Optional[coo_matrix] = None,
         encoder: DatasetEncoder = None,
+        sampler: SamplerCallable = sample_negatives,
     ) -> "Dataset":
         """
 
@@ -44,6 +44,8 @@ class Dataset:
         """
 
         self.encoder = encoder
+        self.sampler = sampler
+
         self.interactions = interactions
         self.user_meta = user_meta
         self.item_meta = item_meta
@@ -168,17 +170,15 @@ class Dataset:
         if negative_samples > 0:
             # the aux_matrix should include additional interactions you wish to consider
             # _exclusively_ for the purposes of generating negative samples.
-            if aux_matrix is not None:
-                interactions += aux_matrix
-
-            # run sampling.
-            users, items, ratings = self._concatenate_negative_samples(
+            users, items, ratings = self.sampler(
                 users,
                 items,
                 ratings,
                 interactions,
                 negative_samples,
-                mode=sampling_mode,
+                sampling_mode,
+                aux_matrix,
+                concat=True,
             )
 
         # optionally shuffle the users, items and ratings.
@@ -206,61 +206,8 @@ class Dataset:
         for (user, item, rating) in zip(users, items, ratings):
             yield user, item, rating
 
-    def _concatenate_negative_samples(
-        self,
-        users: ndarray,
-        items: ndarray,
-        ratings: ndarray,
-        mat: csr_matrix,
-        n: int,
-        **kwargs: Optional[Any]
-    ) -> Tuple[ndarray, ...]:
-        """
-
-        Parameters
-        ----------
-        users
-        items
-        ratings
-        mat
-        n
-
-        Returns
-        -------
-
-        """
-
-        neg_users, neg_items, neg_ratings = self._sample_negatives(mat, n, **kwargs)
-
-        users = np.concatenate((users, neg_users))
-        items = np.concatenate((items, neg_items))
-        ratings = np.concatenate((ratings, neg_ratings))
-
-        return users, items, ratings
-
-    def _sample_negatives(
-        self, mat: csr_matrix, n: int, **kwargs: Optional[Any]
-    ) -> Tuple[ndarray, ...]:
-        """
-
-        Parameters
-        ----------
-        mat
-        n
-
-        Returns
-        -------
-
-        """
-        # Todo: sample n negatives for each positive.
-
-        data = np.asarray(list(sample_negatives(self.users, mat, n, **kwargs))).astype(
-            np.int32
-        )
-        return data[:, 0], data[:, 1], np.zeros(shape=data.shape[0])
-
     @staticmethod
-    def _iter_meta(ids: ndarray, meta: csr_matrix, n_dim: int) -> Generator:
+    def _iter_meta(ids: ndarray, meta: csr_matrix, n_dim: int) -> Iterator[List[int]]:
         """
 
         Parameters
@@ -380,50 +327,11 @@ class Dataset:
     def to_arrays(
         self, *args: Optional[Any], **kwargs: Optional[Any]
     ) -> Tuple[ndarray, ...]:
-        """
-
-        Parameters
-        ----------
-        args
-        kwargs
-
-        Returns
-        -------
-
-        """
+        """Transform `iter` output into a set of arrays."""
 
         return tuple(map(np.asarray, zip(*self.iter(*args, **kwargs))))
 
-    def to_txt(
-        self, dirname: str, *args: Optional[Any], **kwargs: Optional[Any]
-    ) -> None:
-        """
-        Dump the dataset to a set of .txt files.
+    def __iter__(self) -> Iterator[Tuple[ndarray, ndarray, float]]:
+        """Iterate over the dataset."""
 
-        Parameters
-        ----------
-        dirname
-        args
-        kwargs
-
-        Returns
-        -------
-
-        """
-
-        os.makedirs(dirname, exist_ok=True)
-        users = open(os.path.join(dirname, "user.txt"), "ab")
-        items = open(os.path.join(dirname, "item.txt"), "ab")
-        ratings = open(os.path.join(dirname, "ratings.txt"), "ab")
-
-        for user, item, rating in self.iter(*args, **kwargs):
-            np.savetxt(users, np.atleast_2d(user), fmt="%i", delimiter=" ")
-            np.savetxt(items, np.atleast_2d(item), fmt="%i", delimiter=" ")
-            np.savetxt(ratings, np.atleast_1d(rating))
-
-        users.close()
-        items.close()
-        ratings.close()
-
-    def __iter__(self) -> Generator:
         yield from self.iter()

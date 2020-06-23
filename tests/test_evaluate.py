@@ -111,7 +111,7 @@ def test_he_sampling_correctness(sample_dataframes):
 
     users, items = he_sampling(test_dataset, train_dataset)
 
-    a, b, _ = dataset.to_arrays()
+    a, b, _ = dataset.to_components()
     all_users, all_items = groupby(a, b)
 
     for i in range(len(items)):

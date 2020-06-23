@@ -63,7 +63,7 @@ def split(
     deduplicate: bool = True,
 ) -> Tuple[DataFrame, ...]:
     """
-    A recommendation system focused train-test split utility function.
+    A recommendation-system focused train-test split utility function.
 
     This function was inspired by the Azure ML Studio 'recommender split' utility [1].
 
@@ -237,7 +237,7 @@ def he_sampling(
 
     """
 
-    users, items, _ = a.to_arrays(
+    users, items, _ = a.to_components(
         negative_samples=n_samples,
         aux_matrix=b.interactions.tocsr(),
         shuffle=False,

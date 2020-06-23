@@ -19,7 +19,7 @@ def test_user_item_end_to_end_mapping(sample_dataframes):
 
     dataset = Dataset.from_df(df)
 
-    users, items, ratings = dataset.to_arrays()
+    users, items, ratings = dataset.to_components()
 
     decoded = dataset.encoder.inverse_transform(
         users=users.flatten(), items=items.flatten()
@@ -63,7 +63,7 @@ def test_user_meta_item_end_to_end_mapping(sample_dataframes):
     df, user, item = sample_dataframes
 
     dataset = Dataset.from_df(df, user, item)
-    users, items, ratings = dataset.to_arrays(output_dim=4)
+    users, items, ratings = dataset.to_components(output_dim=4)
 
     print(users)
 

@@ -73,7 +73,7 @@ class GMFModel:
         params = {k: v for k, v in self._kwargs.items() if k != "epochs"}
 
         for i in range(epochs):
-            user_x, item_x, y = dataset.to_arrays(negative_samples=self._neg,)
+            user_x, item_x, y = dataset.to_numpy(negative_samples=self._neg, )
 
             tu, vu, ti, vi, ty, vy = train_test_split(
                 user_x, item_x, y, test_size=self._val_split, shuffle=True

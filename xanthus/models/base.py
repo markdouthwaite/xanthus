@@ -123,7 +123,7 @@ class NeuralRecommenderModel(RecommenderModel):
             fit_params = self._fit_params
 
         for i in range(epochs):
-            user_x, item_x, y = dataset.to_arrays(
+            user_x, item_x, y = dataset.to_components(
                 negative_samples=self._negative_samples
             )
 

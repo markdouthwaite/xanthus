@@ -28,15 +28,17 @@ dataset.sampler.
 recommended = model.predict(dataset)
 """
 
-df = pd.read_csv("data/movielens-100k/ratings.csv",)
+# df = pd.read_csv("data/movielens-100k/ratings.csv",)
+#
+# df = df.rename(columns={"userId": "user", "movieId": "item"})
+#
+# encoder = DatasetEncoder()
+# encoder.partial_fit(df["user"], df["item"])
+#
+# dataset = Dataset.from_df(df, encoder=encoder, normalize=lambda _: np.ones_like(_))
+# dataset.to_arr(negative_samples=4, sampling_mode="absolute")
 
-df = df.rename(columns={"userId": "user", "movieId": "item"})
-
-encoder = DatasetEncoder()
-encoder.partial_fit(df["user"], df["item"])
-
-dataset = Dataset.from_df(df, encoder=encoder, normalize=lambda _: np.ones_like(_))
-dataset.to_arrays(negative_samples=4, sampling_mode="absolute")
+print(np.hstack([[[0], [1]], [[1, 2, 3], [2, 3, 4]]]))
 
 # model = MFModel(iterations=5)
 # model.fit(dataset)

@@ -41,7 +41,7 @@ def main(
         test, encoder=encoder, normalize=lambda _: np.ones_like(_)
     )
 
-    _, test_items, _ = test_dataset.to_arrays(shuffle=False)
+    _, test_items, _ = test_dataset.to_numpy(shuffle=False)
 
     users, items = he_sampling(test_dataset, train_dataset)
 

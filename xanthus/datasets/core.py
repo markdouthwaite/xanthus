@@ -324,7 +324,7 @@ class Dataset:
             interactions, user_meta=user_meta, item_meta=item_meta, encoder=encoder
         )
 
-    def to_arrays(
+    def to_components(
         self, *args: Optional[Any], **kwargs: Optional[Any]
     ) -> Tuple[ndarray, ...]:
         """Transform `iter` output into a set of arrays."""

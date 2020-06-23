@@ -4,14 +4,40 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any, List, Dict, Callable
 
 import numpy as np
 from numpy import ndarray
+from pandas import DataFrame
+
+# test: different offsets.
 
 
 class DatasetEncoder:
+    """
+    A class for simply encoding and decoding recommendation datasets in the spirit of
+    a Scikit-Learn Transformer (but not _actually_ a transformer!).
+
+    The objective of this class is to help you manage, save and load your encodings, and
+    to give you a few little utilities to help make building a recommendation model that
+    bit simpler.
+
+    Examples
+    --------
+
+    """
+
     def __init__(self, offset: int = 1) -> None:
+        """
+
+
+        Parameters
+        ----------
+        offset: int
+            The point at which encodings 'start' (i.e.
+
+        """
+
         self._offset = offset
         self.user_mapping: Dict[str, int] = {}
         self.item_mapping: Dict[str, int] = {}
@@ -132,6 +158,35 @@ class DatasetEncoder:
         self.user_tag_mapping = params.get("user_tag_mapping", self.user_tag_mapping)
         self.item_tag_mapping = params.get("item_tag_mapping", self.item_tag_mapping)
         return self
+
+    def to_df(
+        self,
+        users: List[int],
+        items: List[List[int]],
+        user_col: str = "user",
+        item_cols: str = "item_{0}",
+        transform: Callable[[List[int]], List[str]] = None,
+    ) -> DataFrame:
+
+        if len(users) != len(items):
+            raise ValueError(
+                f"The total number of users ('{len(users)}') does not match the total "
+                f"number of item recommendation rows ('{len(items)}')."
+            )
+
+        # create column headers.
+        n = len(items[0])
+        transform = transform or self.inverse_transform
+        columns = [user_col, *(item_cols.format(i) for i in range(n))]
+
+        # inverse-transform user/item arrays.
+        users = transform(users=users)["users"]
+        items = [transform(items=items[i])["items"] for i in range(len(items))]
+
+        # stack users and items.
+        data = np.hstack[np.asarray(users), np.asarray(items)]
+
+        return DataFrame(data=data, columns=columns)
 
     def _fit_feature_mapping(
         self, x: List[str], encodings: Dict[str, int], aux_encodings: Dict[str, int]

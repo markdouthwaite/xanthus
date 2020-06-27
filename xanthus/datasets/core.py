@@ -7,9 +7,9 @@ Copyright (c) 2018-2020 Mark Douthwaite
 from typing import Optional, Any, List, Tuple, Callable, Iterator
 from collections import defaultdict
 
-from scipy.sparse import coo_matrix, csr_matrix
 from numpy import ndarray
 from pandas import DataFrame
+from scipy.sparse import coo_matrix, csr_matrix
 
 import numpy as np
 from .encoder import DatasetEncoder
@@ -21,7 +21,9 @@ from .utils import construct_coo_matrix, sample_negatives, SamplerCallable
 class Dataset:
     """
     A simple dataset abstraction with utilities for training and evaluating
-    recommendation models.
+    recommendation models. It was designed to help implement the methodology
+    outlined in He et al. (i.e. negative sampling), alongside extensions mention in said
+    paper (using user- & item-metadata with implicit feedback).
 
     With this class you can:
     * Lazily generate user-item vectors for model training and evaluation.
@@ -30,14 +32,37 @@ class Dataset:
       and to build evaluation data sets to test model ranking performance.
     * Easily generate the above directly from a Pandas DataFrame.
 
+    In most cases, you'll find it easiest to simply call the Dataset.from_df method,
+    below.
+
     Parameters
     ----------
     interactions: coo_matrix
-
+        A user-item interaction matrix of the shape (NxM), where N is the number of
+        users, and M is the number of items.
     user_meta: coo_matrix
+        A user-user_metadata matrix of the shape (Nx(N+K)), where N is the number of
+        users, and K is the number of unique tags associated with users.
     item_meta: coo_matrix
+        A item-item_metadata matrix of the shape (Nx(N+K)), where N is the number of
+        items, and K is the number of unique tags associated with items.
     encoder: DatasetEncoder
+        A _fitted_ DatasetEncoder object. This should have been fitted on the same data
+        that was used to generate the `interaction`, `user_meta` and `item_meta`
+        matrices. Note that calling the `from_df` classmethod will automatically
+        initialise and fit an encoder for you.
     sampler: SamplerCallable
+        This is a callable that is used to sample from your interactions data. A simple
+        negative sampler is provided, but you should feel free to experiment with
+        your own.
+
+    Notes
+    -----
+    * Tags are user- or item-metadata. For example, for movie metadata, for the movie
+      'Lord of the Rings: Fellowship of the Ring', the movie may have the ID '1', and
+      may have the tags: 'fantasy', 'adventure'. If these tags had the encodings '2' and
+      '3' respectively, then the elements (1, 2) and (1, 3) in the item metadata matrix
+      would be non-zero values.
 
     Examples
     --------
@@ -279,12 +304,20 @@ class Dataset:
         **kwargs: Optional[Any]
     ) -> "Dataset":
         """
+        Initialise the Dataset directly from an interactions DataFrame and optionally
+        from additional user_meta and item_meta DataFrames too.
 
         Parameters
         ----------
-        interactions
-        user_meta
-        item_meta
+        interactions: coo_matrix
+            A user-item interaction matrix of the shape (NxM), where N is the number of
+            users, and M is the number of items.
+        user_meta: coo_matrix
+            A user-user_metadata matrix of the shape (Nx(N+K)), where N is the number of
+            users, and K is the number of unique tags associated with users.
+        item_meta: coo_matrix
+            A item-item_metadata matrix of the shape (Nx(N+K)), where N is the number of
+            items, and K is the number of unique tags associated with items.
         normalize
         encoder
         kwargs

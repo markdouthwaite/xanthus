@@ -24,9 +24,36 @@ model.fit(dataset)
 dataset.to_dense()
 dataset.encoder.to_df()
 dataset.sampler.
-
+r
 recommended = model.predict(dataset)
 """
+
+interactions = pd.read_csv("data/movielens-100k/ratings.csv")
+interactions = interactions.rename(columns={"userId": "user", "movieId": "item"})
+metadata = pd.read_csv("data/movielens-100k/movies.csv")
+
+item = metadata["movieId"]
+tags = metadata["genres"]
+data = ([item[i], t] for i in range(len(item)) for t in tags[i].split("|"))
+
+item_meta = pd.DataFrame(data=data, columns=["item", "tag"])
+
+ds = Dataset.from_df(interactions, item_meta=item_meta)
+
+for user, item, rating in ds.iter(output_dim=4, shuffle=False):
+    print(user, item, rating)
+    break
+
+# print(df[["movieId", "genres"]])
+
+# df = df.rename(columns={"userId": "user", "movieId": "item"})
+#
+# ds = Dataset.from_df(df)
+#
+# for user, item, rating in ds.iter(shuffle=False):
+#     print(user, item, rating)
+#     break
+
 
 # df = pd.read_csv("data/movielens-100k/ratings.csv",)
 #
@@ -38,7 +65,7 @@ recommended = model.predict(dataset)
 # dataset = Dataset.from_df(df, encoder=encoder, normalize=lambda _: np.ones_like(_))
 # dataset.to_arr(negative_samples=4, sampling_mode="absolute")
 
-print(np.hstack([[[0], [1]], [[1, 2, 3], [2, 3, 4]]]))
+# print(np.hstack([[[0], [1]], [[1, 2, 3], [2, 3, 4]]]))
 
 # model = MFModel(iterations=5)
 # model.fit(dataset)

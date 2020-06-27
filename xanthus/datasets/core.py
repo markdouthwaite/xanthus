@@ -20,27 +20,62 @@ from .utils import construct_coo_matrix, sample_negatives, SamplerCallable
 
 class Dataset:
     """
-    A simple recommender dataset abstraction with utilities training and evaluating
+    A simple dataset abstraction with utilities for training and evaluating
     recommendation models.
+
+    With this class you can:
+    * Lazily generate user-item vectors for model training and evaluation.
+    * Lazily map users and items to user and item metadata.
+    * Generate negative samples. This can be used for training data and to create
+      and to build evaluation data sets to test model ranking performance.
+    * Easily generate the above directly from a Pandas DataFrame.
+
+    Parameters
+    ----------
+    interactions: coo_matrix
+
+    user_meta: coo_matrix
+    item_meta: coo_matrix
+    encoder: DatasetEncoder
+    sampler: SamplerCallable
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.read_csv("data/movielens-100k/ratings.csv")
+    >>> df = df.rename(columns={"userId": "user", "movieId": "item"})
+    >>> ds = Dataset.from_df(df)
+    >>> for user, item, rating in ds.iter(shuffle=False):
+    ...    print(user, item, rating)
+    ...    break
+    ...
+    [1] [1] 4.0
+
+    >>> df = pd.read_csv("data/movielens-100k/ratings.csv")
+    >>> df = df.rename(columns={"userId": "user", "movieId": "item"})
+    >>> metadata = pd.read_csv("data/movielens-100k/movies.csv")
+    >>> item = metadata["movieId"]
+    >>> tags = metadata["genres"]
+    >>> data = ([item[i], tag] for i in range(len(item)) for tag in tags[i].split("|"))
+    >>> item_meta = pd.DataFrame(data=data, columns=["item", "tag"])
+    >>> ds = Dataset.from_df(df, item_meta=item_meta)
+    >>> for user, item, rating in ds.iter(output_dim=4, shuffle=False):
+    ...     print(user, item, rating)
+    ...     break
+    [1] [1, 9743, 9744, 9745] 4.0
+
     """
 
     def __init__(
         self,
         interactions: coo_matrix,
-        user_meta: Optional[coo_matrix] = None,
-        item_meta: Optional[coo_matrix] = None,
-        encoder: DatasetEncoder = None,
+        user_meta: coo_matrix,
+        item_meta: coo_matrix,
+        encoder: DatasetEncoder,
         sampler: SamplerCallable = sample_negatives,
-    ) -> "Dataset":
+    ) -> None:
         """
-
-        Parameters
-        ----------
-        interactions
-        user_meta
-        item_meta
-        encoder
-
+        Initialise a Dataset.
         """
 
         self.encoder = encoder

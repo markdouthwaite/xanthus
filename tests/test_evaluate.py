@@ -93,7 +93,7 @@ def test_split_output_correctness(small_split_dataset):
 def test_he_sampling_correctness(sample_dataframes):
     df, _, _ = sample_dataframes
 
-    df = df.drop_duplicates()
+    df = df.drop_duplicates(subset=["user", "item"])
 
     encoder = DatasetEncoder()
     encoder.fit(df["user"], df["item"])
@@ -135,3 +135,4 @@ def test_split_ignore_users(small_split_dataset):
     )
 
     assert len(train) + len(test) <= int(frac * len(small_split_dataset))
+

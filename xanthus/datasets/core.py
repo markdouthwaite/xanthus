@@ -6,7 +6,6 @@ Copyright (c) 2018-2020 Mark Douthwaite
 
 from typing import Optional, Any, List, Tuple, Callable, Iterator
 from collections import defaultdict
-from itertools import islice
 
 from numpy import ndarray
 from pandas import DataFrame

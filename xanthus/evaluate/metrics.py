@@ -218,6 +218,63 @@ def normalized_discounted_cumulative_gain(
     return dcg / idcg
 
 
+def hit_ratio(actual: List[int], predicted: List[int], *_: Optional[Any]) -> float:
+    """
+    Compute the hit ratio (determine if a single element exists in predicted).
+
+    Parameters
+    ----------
+    actual: list
+        A list of at least one element, where the first element is checked to determine
+        if it appears in 'predicted'.
+    predicted: list
+        A list (potentially unordered) of items.
+
+    Returns
+    -------
+    output: float
+        Indicate whether the element exists or not.
+
+    References
+    ----------
+    [1] https://arxiv.org/pdf/1708.05024.pdf
+
+    """
+
+    if actual[0] in predicted:
+        return 1.0
+    else:
+        return 0.0
+
+
+def truncated_ndcg(actual: List[int], predicted: List[int], *_: Optional[Any]) -> float:
+    """
+    A special case of nDCG specifically to check if a single element exists in the
+    predicted set, and to compute the nDCG for this item only (i.e. for a single
+    element).
+
+    Parameters
+    ----------
+    actual: list
+        A list of at least one element, where the first element is checked to determine
+        if it appears in 'predicted', and the nDCG computed for this element.
+    predicted: list
+        A list of ordered items.
+
+    References
+    ----------
+    [1] https://arxiv.org/pdf/1708.05024.pdf
+
+    """
+
+    z = actual[0]
+    for i, e in enumerate(predicted):
+        if e == z:
+            return math.log(2) / math.log(i + 2)
+
+    return 0.0
+
+
 # aliases
 cak = coverage_at_k
 pak = precision_at_k

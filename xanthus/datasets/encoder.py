@@ -22,20 +22,16 @@ class DatasetEncoder:
     to give you a few little utilities to help make building a recommendation model that
     bit simpler.
 
-    Examples
-    --------
+    Parameters
+    ----------
+    offset: int
+        The point at which encodings 'start'. By default, '0' is reserved (hence '1').
 
     """
 
     def __init__(self, offset: int = 1) -> None:
         """
-
-
-        Parameters
-        ----------
-        offset: int
-            The point at which encodings 'start' (i.e.
-
+        Initialize the DatasetEncoder.
         """
 
         self._offset = offset
@@ -45,6 +41,8 @@ class DatasetEncoder:
         self.item_tag_mapping: Dict[str, int] = {}
 
     def fit(self, *args: Optional[Any], **kwargs: Optional[Any]) -> "DatasetEncoder":
+        """Fit the DatasetEncoder."""
+
         return self.partial_fit(*args, **kwargs)
 
     def transform(
@@ -54,6 +52,19 @@ class DatasetEncoder:
         user_tags: Optional[List[str]] = None,
         item_tags: Optional[List[str]] = None,
     ) -> Dict[str, ndarray]:
+        """
+
+        Parameters
+        ----------
+        users
+        items
+        user_tags
+        item_tags
+
+        Returns
+        -------
+
+        """
 
         output = dict()
 
@@ -82,6 +93,7 @@ class DatasetEncoder:
     def fit_transform(
         self, *args: Optional[Any], **kwargs: Optional[Any]
     ) -> Dict[str, ndarray]:
+        """Fit the DatasetEncoder, then transform it. Simples."""
 
         self.fit(*args, **kwargs)
         return self.transform(*args, **kwargs)
@@ -93,6 +105,28 @@ class DatasetEncoder:
         user_features: Optional[List[str]] = None,
         item_features: Optional[List[str]] = None,
     ) -> "DatasetEncoder":
+        """
+        Fit the DatasetEncoder.
+
+        This will update encodings to include any new user/item values.
+
+        Parameters
+        ----------
+        users: list, optional
+            A list of users to encode.
+        items: list, optional
+            A list of items to encode.
+        user_features: list, optional
+            A list of user features to encode.
+        item_features: list, optional
+            A list of item features to encode.
+
+        Returns
+        -------
+        output: DatasetEncoder
+            A newly updated DatasetEncoder.
+
+        """
 
         if users is not None:
             self.user_mapping = self._fit_mapping(users, self.user_mapping)
@@ -119,6 +153,19 @@ class DatasetEncoder:
         user_features: Optional[List[int]] = None,
         item_features: Optional[List[int]] = None,
     ) -> Dict[str, ndarray]:
+        """
+
+        Parameters
+        ----------
+        users
+        items
+        user_features
+        item_features
+
+        Returns
+        -------
+
+        """
 
         output = dict()
 
@@ -145,6 +192,12 @@ class DatasetEncoder:
         return output
 
     def get_params(self) -> Dict[str, Dict[str, int]]:
+        """
+
+        Returns
+        -------
+
+        """
         return dict(
             user_mapping=self.user_mapping,
             item_mapping=self.item_mapping,
@@ -153,6 +206,16 @@ class DatasetEncoder:
         )
 
     def set_params(self, params: Dict[str, Dict[str, int]]) -> "DatasetEncoder":
+        """
+
+        Parameters
+        ----------
+        params
+
+        Returns
+        -------
+
+        """
         self.user_mapping = params.get("user_mapping", self.user_mapping)
         self.item_mapping = params.get("item_mapping", self.item_mapping)
         self.user_tag_mapping = params.get("user_tag_mapping", self.user_tag_mapping)
@@ -167,6 +230,20 @@ class DatasetEncoder:
         item_cols: str = "item_{0}",
         transform: Callable[[List[int]], List[str]] = None,
     ) -> DataFrame:
+        """
+
+        Parameters
+        ----------
+        users
+        items
+        user_col
+        item_cols
+        transform
+
+        Returns
+        -------
+
+        """
 
         if len(users) != len(items):
             raise ValueError(

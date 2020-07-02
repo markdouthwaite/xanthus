@@ -79,8 +79,8 @@ def score(
     if n_cpu <= 2:
         output = [fn(a, p, **kwargs) for a, p in zip(actual, predicted)]
     else:
-        pool = mp.Pool(processes=n_cpu)
-        output = pool.map(partial(_parfn, fn, **kwargs), zip(actual, predicted))
+        with mp.Pool(processes=n_cpu) as pool:
+            output = pool.map(partial(_parfn, fn, **kwargs), zip(actual, predicted))
 
     return asarray(output)
 

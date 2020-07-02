@@ -4,8 +4,8 @@ from setuptools import find_packages
 from xanthus import __version__
 
 long_description = """
-Implementations of Neural Collaborative Filtering models, based on the work of Xiangnan,
- built on Keras. 
+Implementations of Neural Collaborative Filtering models, based/inspired by the work of 
+He et al., built on Keras. 
 """
 
 setup(

@@ -6,6 +6,7 @@ Copyright (c) 2018-2020 Mark Douthwaite
 
 from typing import Optional, Any, List, Tuple, Callable, Iterator
 from collections import defaultdict
+from itertools import islice
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -63,6 +64,8 @@ class Dataset:
       may have the tags: 'fantasy', 'adventure'. If these tags had the encodings '2' and
       '3' respectively, then the elements (1, 2) and (1, 3) in the item metadata matrix
       would be non-zero values.
+    * This class is not suitable for very large datasets, it could do with a bit of TLC
+      to make it more friendly with large use-cases.
 
     Examples
     --------

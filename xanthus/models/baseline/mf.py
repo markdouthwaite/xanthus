@@ -4,6 +4,7 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
+from typing import Optional, Any, List
 from itertools import islice
 
 from numpy import asarray
@@ -11,18 +12,25 @@ from numpy import asarray
 from implicit.als import AlternatingLeastSquares
 from implicit.bpr import BayesianPersonalizedRanking
 
+from xanthus.datasets import Dataset
+
 
 class MatrixFactorizationModel:
     """
     A simple adapter for 'non-neural' matrix factorization algorithms.
 
     This class wraps the functionality provided by the Implicit library [1] which is
-    itself based (partly) upon [2].
+    itself based (partly) upon [2]. It is provided as a baseline model, along with
+     the simple 'PopRankModel'.
 
     References
     ----------
-    [1]
+    [1] https://github.com/benfred/implicit/tree/master/implicit
     [2] https://www.comp.nus.edu.sg/~xiangnan/papers/sigir16-eals-cm.pdf
+
+    See Also
+    --------
+    xanthus.models.baseline.PopRankModel
 
     """
 
@@ -31,16 +39,70 @@ class MatrixFactorizationModel:
         "bpr": BayesianPersonalizedRanking,
     }
 
-    def __init__(self, method: str = "als", **kwargs) -> None:
+    def __init__(self, method: str = "als", **kwargs: Optional[Any]) -> None:
+        """Initialise a MatrixFactorizationModel."""
+
         self._model = self._methods[method](**kwargs)
         self._mat = None
 
-    def fit(self, dataset):
+    def fit(self, dataset: Dataset) -> "MatrixFactorizationModel":
+        """
+        Fit the model to a provided Dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            An input dataset.
+
+        Returns
+        -------
+        output: MatrixFactorizationModel
+            Returns itself. How fun.
+
+        See Also
+        --------
+        xanthus.datasets.Dataset
+
+        """
+
         self._mat = dataset.interactions.tocsr()
         self._model.fit(self._mat.T)
         return self
 
-    def predict(self, dataset, users=None, items=None, n=6, **kwargs):
+    def predict(
+        self,
+        dataset: Dataset,
+        users: Optional[List[int]] = None,
+        items: Optional[List[int]] = None,
+        n: int = 3,
+        **kwargs: Optional[Any]
+    ) -> List[List[int]]:
+        """
+        Generate predictions (recommendations) from the model. For each provided user,
+        the output will be a set of items ranked in order of predicted preference.
+
+        Parameters
+        ----------
+        dataset: Dataset, optional
+            The dataset for which you wish to generate recommendations. If this is
+            provided, this object's `all_items` and `users` will be used for the
+            purpose of generating recommendations.
+        users: list, optional
+            An optional array of users for whom you wish to generate recommendations.
+        items: list, optional
+            An optional array of items you wish to be used in recommendations. This
+            may be a subset of items for the purposes of ranking specific subsets of
+            items, for example. Maybe you want to see which Star Wars movies are the
+            most loved according to the model, for example.
+        n: int
+            The number of recommendations to be generated per user.
+        Returns
+        -------
+        output: list
+            A list, where each element corresponds to a list of recommendations.
+
+        """
+
         users = users if users is not None else dataset.users
         users = users.flatten()
 

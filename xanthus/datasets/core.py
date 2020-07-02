@@ -272,15 +272,26 @@ class Dataset:
     @staticmethod
     def _iter_meta(ids: ndarray, meta: csr_matrix, n_dim: int) -> Iterator[List[int]]:
         """
+        Lazily evaluate metadata in the provided CSR matrix.
 
         Parameters
         ----------
-        ids
-        meta
-        n_dim
+        ids: ndarray
+            An array of IDs. For items, this will correspond to individual item IDs.
+            For users, this will correspond to individual user IDs.
+        meta: csr_matrix
+            A sparse matrix of (NxM) dimensions, where N corresponds to the number of
+            user/item IDs (above) and M corresponds to the number of user/item metadata
+            features (vocab) in the dataset.
+        n_dim: int
+            The length of the output vectors. Makes sure this is large enough to
+            actually append some metadata to your output vectors (i.e. > 1).
 
         Returns
         -------
+        output: Iterator
+            An iterator, where each ID in the list is mapped to corresponding metadata.
+            The output shape of each element is then a list of 'n_dim' length.
 
         """
 
@@ -321,12 +332,18 @@ class Dataset:
         item_meta: coo_matrix
             A item-item_metadata matrix of the shape (Nx(N+K)), where N is the number of
             items, and K is the number of unique tags associated with items.
-        normalize
-        encoder
-        kwargs
+        normalize: callable, optional
+            Provide a normalization function to apply to your scores. If not provided,
+            you'll get what you put in. Simple, right?
+        encoder: DatasetEncoder, optional
+            Optionally provide a pre-trained DatasetEncoder. This can be useful if you
+            want to share the same encoder over two Datasets to preserve the same
+            encodings across the datasets.
 
         Returns
         -------
+        output: Dataset
+            A shiny new Dataset, ready for your next recommender experiment.
 
         """
 

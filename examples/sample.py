@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from xanthus.datasets import Dataset, DatasetEncoder
-# from xanthus.models import GeneralizedMatrixFactorizationModel as GMFModel
+from xanthus.models import GeneralizedMatrixFactorizationModel as GMFModel
 from xanthus.models.baseline import MatrixFactorizationModel as MFModel
 from xanthus.evaluate import he_sampling, score, metrics, leave_one_out
 
@@ -25,35 +25,40 @@ test_dataset = Dataset.from_df(
 
 _, test_items, _ = test_dataset.to_components(shuffle=False)
 
-model = MFModel(
-    # fit_params=dict(epochs=10, batch_size=256), n_factors=64, negative_samples=4
-)
+# model = GMFModel(
+#     fit_params=dict(epochs=15, batch_size=256), n_factors=100, negative_samples=4
+# )
+
+model = MFModel(method="bpr")
+
 model.fit(train_dataset)
 
 users, items = he_sampling(test_dataset, train_dataset)
 recommended = model.predict(test_dataset, users=users, items=items, n=10)
 
 print(score(metrics.ndcg, test_items, recommended, k=1).mean())
-print(score(metrics.precision_at_k, test_items, recommended, k=10).mean())
+print(score(metrics.truncated_ndcg, test_items, recommended).mean())
+print(score(metrics.hit_ratio, test_items, recommended).mean())
 
 """
-# BPR - 100k @ 15
-0.34918032786885245
-0.7688524590163934
-
 # ALS - 100k @ 15
-0.39672131147540984
-0.7688524590163934
+0.44754098360655736
+0.6126378461742324
+0.7852459016393443
 
-# NeuMF - 100k @ 10
-0.3836065573770492
-0.8327868852459016
-
-# GMF - 100k
+# BPR - 100k @ 15
 0.37868852459016394
-0.8508196721311475
+0.5577336479002039
+0.7475409836065574
 
-# MLP - 100k @ 10 epochs
-0.3655737704918033
-0.8327868852459016
+# GMF - 100k @ 15 
+0.40491803278688526
+0.6060944045188948
+0.8262295081967214
+
+# NeuMF - 100k @ 15
+0.3885245901639344
+0.5972951514089754
+0.8180327868852459
+
 """

@@ -9,7 +9,7 @@ import random
 
 import pytest
 
-from numpy import isclose, unique, all, intersect1d, ones_like
+from numpy import isclose, unique, all, intersect1d, ones_like, c_, arange, asarray
 from pandas import DataFrame
 
 from xanthus.datasets import DatasetEncoder, Dataset, groupby
@@ -18,29 +18,14 @@ from xanthus.evaluate import score, ndcg, utils, he_sampling, split
 
 @pytest.fixture
 def small_split_dataset():
-    data = [
-        ["0", "0"],
-        ["0", "1"],
-        ["0", "2"],
-        ["1", "0"],
-        ["1", "3"],
-        ["2", "1"],
-        ["2", "4"],
-        ["2", "5"],
-        ["2", "6"],
-        ["3", "1"],
-        ["3", "2"],
-        ["4", "0"],
-        ["5", "0"],
-        ["5", "2"],
-        ["5", "6"],
-        ["6", "7"],
-        ["6", "8"],
-        ["6", "9"],
-        ["7", "2"],
-        ["7", "9"],
-    ]
-    return DataFrame(data=data, columns=["user", "item"])
+    users = random.choices(arange(100), k=500)
+    items = random.choices(arange(100), k=500)
+    users.extend([101, 102])
+    items.extend([101, 102])
+    data = c_[asarray(users), asarray(items)]
+    df = DataFrame(data=data, columns=["user", "item"])
+    df = df.drop_duplicates(["user", "item"])
+    return df
 
 
 def test_parallel_ndcg_success():
@@ -122,17 +107,19 @@ def test_he_sampling_correctness(sample_dataframes):
 def test_split_min_records(small_split_dataset):
     train, test = utils.split(small_split_dataset, frac_train=0.75, min_records=2)
 
-    # user '4' appears once, check it doesn't exist
-    assert (train["user"] == "4").sum() == 0
+    # users '101' and '102' appear once, check they don't exist
+    assert (train["user"] == 101).sum() == 0
+    assert (train["user"] == 102).sum() == 0
 
 
 def test_split_ignore_users(small_split_dataset):
-    # todo: unstable test - should pass for any seed (it doesn't currently).
-
     frac = 0.5
     train, test = utils.split(
         small_split_dataset, frac_train=0.75, frac_ignored_users=frac
     )
 
-    assert len(train) + len(test) <= int(frac * len(small_split_dataset))
+    df = train.append(test)
+    n_sampled_users = df["user"].nunique()
+    n_users = small_split_dataset["user"].nunique()
+    assert n_sampled_users <= int(math.ceil(frac * n_users))
 

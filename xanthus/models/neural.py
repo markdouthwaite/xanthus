@@ -41,7 +41,7 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
     def __init__(
         self,
         *args: Optional[Any],
-        layers: Tuple[int, ...] = (32, 16, 8),
+        layers: Tuple[int, ...] = (64, 32, 16, 8),
         activations: str = "relu",
         l2_reg: float = 0.0,
         **kwargs: Optional[Any]
@@ -144,7 +144,7 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
     def __init__(
         self,
         *args: Optional[Any],
-        layers: Tuple[int, ...] = (32, 16, 8),
+        layers: Tuple[int, ...] = (64, 32, 16, 8),
         activations: str = "relu",
         l2_reg: float = 0.0,
         **kwargs: Optional[Any]

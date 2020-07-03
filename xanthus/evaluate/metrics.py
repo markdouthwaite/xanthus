@@ -253,6 +253,8 @@ def truncated_ndcg(actual: List[int], predicted: List[int], *_: Optional[Any]) -
     predicted set, and to compute the nDCG for this item only (i.e. for a single
     element).
 
+    This implementation reflects the implementation found in [1], as described in [2].
+
     Parameters
     ----------
     actual: list
@@ -263,7 +265,8 @@ def truncated_ndcg(actual: List[int], predicted: List[int], *_: Optional[Any]) -
 
     References
     ----------
-    [1] https://arxiv.org/pdf/1708.05024.pdf
+    [1] https://github.com/hexiangnan/neural_collaborative_filtering/blob/master/MLP.py
+    [2] https://arxiv.org/pdf/1708.05024.pdf
 
     """
 

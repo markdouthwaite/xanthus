@@ -76,3 +76,56 @@ def test_transform_fails_for_unknown_elements(sample_dataset):
         d.fit(users=a_users, items=a_items)
 
         d.transform(users=b_users, items=b_items)
+
+
+def test_inverse_fit_transform_using_metadata(sample_metadata_dataset):
+    users = sample_metadata_dataset[:, 0]
+    items = sample_metadata_dataset[:, 1]
+    user_meta = sample_metadata_dataset[:, 2]
+    item_meta = sample_metadata_dataset[:, 3]
+
+    d = DatasetEncoder()
+    d.fit(users=users, items=items, user_tags=user_meta, item_tags=item_meta)
+
+    r = d.inverse_transform(**d.transform(users=users,
+                                          items=items,
+                                          user_tags=user_meta,
+                                          item_tags=item_meta))
+
+    assert r["users"].shape == users.shape
+    assert r["items"].shape == items.shape
+    assert r["user_tags"].shape == user_meta.shape
+    assert r["item_tags"].shape == item_meta.shape
+
+    assert np.all(r["users"] == users)
+    assert np.all(r["items"] == items)
+    assert np.all(r["user_tags"] == user_meta)
+    assert np.all(r["item_tags"] == item_meta)
+
+
+def test_to_df_succeeds(sample_dataset):
+    users, items = sample_dataset[:, 0], sample_dataset[:, 1]
+
+    d = DatasetEncoder()
+    d.fit(users=users, items=items)
+    encoded = d.transform(users=users, items=items)
+    recommended = [np.random.choice(encoded["items"], 10, replace=False) for _ in users]
+
+    rdf = d.to_df(encoded["users"], recommended)
+
+    assert np.all(rdf["user"].values == users)
+
+    for i, row in enumerate(rdf.values[:, 1:]):
+        assert np.all(row == d.inverse_transform(items=recommended[i])["items"])
+
+
+def test_to_df_fails_with_mismatched_inputs(sample_dataset):
+    users, items = sample_dataset[:, 0], sample_dataset[:, 1]
+    d = DatasetEncoder()
+    d.fit(users=users, items=items)
+    encoded = d.transform(users=users, items=items)
+    recommended = [np.random.choice(encoded["items"], 10, replace=False)
+                   for _ in range(int(len(users)/2))]
+
+    with pytest.raises(ValueError):
+        d.to_df(users, recommended)

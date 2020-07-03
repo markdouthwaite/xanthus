@@ -79,12 +79,12 @@ class DatasetEncoder:
             )
 
         if user_tags is not None:
-            output["user_features"] = np.fromiter(
+            output["user_tags"] = np.fromiter(
                 (self.user_tag_mapping[_] for _ in user_tags), np.int32
             )
 
         if item_tags is not None:
-            output["item_features"] = np.fromiter(
+            output["item_tags"] = np.fromiter(
                 (self.item_tag_mapping[_] for _ in item_tags), np.int32
             )
 
@@ -102,8 +102,8 @@ class DatasetEncoder:
         self,
         users: Optional[List[str]] = None,
         items: Optional[List[str]] = None,
-        user_features: Optional[List[str]] = None,
-        item_features: Optional[List[str]] = None,
+        user_tags: Optional[List[str]] = None,
+        item_tags: Optional[List[str]] = None,
     ) -> "DatasetEncoder":
         """
         Fit the DatasetEncoder.
@@ -116,9 +116,9 @@ class DatasetEncoder:
             A list of users to encode.
         items: list, optional
             A list of items to encode.
-        user_features: list, optional
+        user_tags: list, optional
             A list of user features to encode.
-        item_features: list, optional
+        item_tags: list, optional
             A list of item features to encode.
 
         Returns
@@ -134,14 +134,14 @@ class DatasetEncoder:
         if items is not None:
             self.item_mapping = self._fit_mapping(items, self.item_mapping)
 
-        if user_features is not None:
+        if user_tags is not None:
             self.user_tag_mapping = self._fit_feature_mapping(
-                user_features, self.user_tag_mapping, self.user_mapping
+                user_tags, self.user_tag_mapping, self.user_mapping
             )
 
-        if item_features is not None:
+        if item_tags is not None:
             self.item_tag_mapping = self._fit_feature_mapping(
-                item_features, self.item_tag_mapping, self.item_mapping
+                item_tags, self.item_tag_mapping, self.item_mapping
             )
 
         return self
@@ -150,8 +150,8 @@ class DatasetEncoder:
         self,
         users: Optional[List[int]] = None,
         items: Optional[List[int]] = None,
-        user_features: Optional[List[int]] = None,
-        item_features: Optional[List[int]] = None,
+        user_tags: Optional[List[int]] = None,
+        item_tags: Optional[List[int]] = None,
     ) -> Dict[str, ndarray]:
         """
 
@@ -159,8 +159,8 @@ class DatasetEncoder:
         ----------
         users
         items
-        user_features
-        item_features
+        user_tags
+        item_tags
 
         Returns
         -------
@@ -177,16 +177,16 @@ class DatasetEncoder:
             inv_item_mappings = {v: k for k, v in self.item_mapping.items()}
             output["items"] = np.asarray(list(inv_item_mappings[_] for _ in items))
 
-        if user_features is not None:
+        if user_tags is not None:
             inv_user_feat_mappings = {v: k for k, v in self.user_tag_mapping.items()}
-            output["user_features"] = np.asarray(
-                list(inv_user_feat_mappings[_] for _ in user_features)
+            output["user_tags"] = np.asarray(
+                list(inv_user_feat_mappings[_] for _ in user_tags)
             )
 
-        if item_features is not None:
+        if item_tags is not None:
             inv_item_feat_mappings = {v: k for k, v in self.item_tag_mapping.items()}
-            output["item_features"] = np.asarray(
-                list(inv_item_feat_mappings[_] for _ in item_features)
+            output["item_tags"] = np.asarray(
+                list(inv_item_feat_mappings[_] for _ in item_tags)
             )
 
         return output
@@ -261,7 +261,7 @@ class DatasetEncoder:
         items = [transform(items=items[i])["items"] for i in range(len(items))]
 
         # stack users and items.
-        data = np.hstack[np.asarray(users), np.asarray(items)]
+        data = np.c_[np.asarray(users), np.asarray(items)]
 
         return DataFrame(data=data, columns=columns)
 

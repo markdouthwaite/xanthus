@@ -10,6 +10,7 @@ for i in range(100):
     a = np.random.choice(options, 6)
     p = np.random.choice(a, 3)
     p_ = np.random.choice(options[~np.isin(options, a)], 3)
+    p = np.concatenate([p, p_])
     actual.append(a)
     predicted.append(p)
 

@@ -174,9 +174,10 @@ def test_precision_at_k_correctness():
     actual = []
     predicted = []
     for i in range(100):
-        a = random.choice(options, 6)
-        p = random.choice(a, 3)
-        p_ = random.choice(options[~isin(options, a)], 3)
+        a = random.choices(options, k=6)
+        p = random.choices(a, k=3)
+        p_ = random.choices(options[~isin(options, a)], k=3)
+        p.extend(p_)
         actual.append(a)
         predicted.append(p)
 

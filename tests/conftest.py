@@ -21,10 +21,12 @@ def sample_metadata_dataset():
     b = [uuid.uuid4().hex[:10] for _ in range(100)]
     c = [uuid.uuid4().hex[:10] for _ in range(100)]
     d = [uuid.uuid4().hex[:10] for _ in range(100)]
-    return np.c_[np.random.choice(a, 1000),
-                 np.random.choice(b, 1000),
-                 np.random.choice(c, 1000),
-                 np.random.choice(d, 1000)]
+    return np.c_[
+        np.random.choice(a, 1000),
+        np.random.choice(b, 1000),
+        np.random.choice(c, 1000),
+        np.random.choice(d, 1000),
+    ]
 
 
 @pytest.fixture

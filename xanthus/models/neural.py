@@ -112,7 +112,9 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
                 activation=self._activations,
             )(body)
 
-        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(body)
+        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(
+            body
+        )
 
         return Model(inputs=[user_input, item_input], outputs=output)
 
@@ -209,9 +211,7 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
             dataset.all_items.shape[0], n_item_dim, n_factors
         )
 
-        mlp_body = Concatenate()(
-            [mlp_user_factors, mlp_item_factors]
-        )
+        mlp_body = Concatenate()([mlp_user_factors, mlp_item_factors])
 
         for layer in self._layers:
             mlp_body = Dense(
@@ -231,7 +231,9 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
 
         body = Concatenate()([mf_body, mlp_body])
 
-        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(body)
+        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(
+            body
+        )
 
         return Model(inputs=[user_input, item_input], outputs=output)
 

@@ -9,11 +9,30 @@ import random
 
 import pytest
 
-from numpy import isclose, unique, all, intersect1d, ones_like, c_, arange, asarray
+from numpy import (
+    isclose,
+    unique,
+    all,
+    intersect1d,
+    ones_like,
+    c_,
+    arange,
+    asarray,
+    ones,
+    isin,
+)
 from pandas import DataFrame
 
 from xanthus.datasets import DatasetEncoder, Dataset, groupby
-from xanthus.evaluate import score, ndcg, utils, he_sampling, split
+from xanthus.evaluate import (
+    score,
+    ndcg,
+    utils,
+    he_sampling,
+    split,
+    coverage_at_k,
+    precision_at_k,
+)
 
 
 @pytest.fixture
@@ -26,6 +45,14 @@ def small_split_dataset():
     df = DataFrame(data=data, columns=["user", "item"])
     df = df.drop_duplicates(["user", "item"])
     return df
+
+
+def test_single_process_ndcg_success():
+    n = 10000
+    predicted = [list(range(10)) for _ in range(n)]
+    actual = [list(range(random.randint(10, 30))) for _ in range(n)]
+
+    assert sum(score(ndcg, actual, predicted, n_cpu=1)) == n
 
 
 def test_parallel_ndcg_success():
@@ -123,3 +150,34 @@ def test_split_ignore_users(small_split_dataset):
     n_users = small_split_dataset["user"].nunique()
     assert n_sampled_users <= int(math.ceil(frac * n_users))
 
+
+def test_score_throws_error_for_mismatched_inputs():
+    a = ones((10, 100), dtype=int)
+    b = ones((9, 100), dtype=int)
+
+    with pytest.raises(ValueError):
+        score(ndcg, a, b)
+
+
+def test_coverage_at_k_correctness():
+    a = arange(0, 1000)
+    b = a[:100]
+
+    cov = coverage_at_k(a.reshape(-1, 1), b.reshape(-1, 1), k=10)
+
+    assert cov == 0.1
+
+
+def test_precision_at_k_correctness():
+    options = arange(0, 1000)
+
+    actual = []
+    predicted = []
+    for i in range(100):
+        a = random.choice(options, 6)
+        p = random.choice(a, 3)
+        p_ = random.choice(options[~isin(options, a)], 3)
+        actual.append(a)
+        predicted.append(p)
+
+    assert score(precision_at_k, actual, predicted).mean() == 0.5

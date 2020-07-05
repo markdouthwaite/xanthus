@@ -20,8 +20,8 @@ def get_embedding_block(
     n_vocab: int,
     n_dim: int,
     n_factors: int,
-    reg: float=0.0,
-    initializer: Initializer=RandomNormal(stddev=0.01),
+    reg: float = 0.0,
+    initializer: Initializer = RandomNormal(stddev=0.01),
     inputs: Optional[Input] = None,
 ) -> Tuple[Layer, Embedding, Embedding]:
     """

@@ -111,8 +111,9 @@ def test_to_arrays_absolute_negative_sample_shapes(sample_dataframes):
     users, items, _ = dataset.to_components()
 
     for i in range(1, 5):
-        sampled_users, sampled_items, _ = dataset.to_components(negative_samples=i,
-                                                            sampling_mode="absolute")
+        sampled_users, sampled_items, _ = dataset.to_components(
+            negative_samples=i, sampling_mode="absolute"
+        )
         assert sampled_users.shape[0] == (i * n_users) + users.shape[0]
         assert sampled_items.shape[0] == (i * n_users) + users.shape[0]
 

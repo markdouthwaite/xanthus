@@ -87,10 +87,11 @@ def test_inverse_fit_transform_using_metadata(sample_metadata_dataset):
     d = DatasetEncoder()
     d.fit(users=users, items=items, user_tags=user_meta, item_tags=item_meta)
 
-    r = d.inverse_transform(**d.transform(users=users,
-                                          items=items,
-                                          user_tags=user_meta,
-                                          item_tags=item_meta))
+    r = d.inverse_transform(
+        **d.transform(
+            users=users, items=items, user_tags=user_meta, item_tags=item_meta
+        )
+    )
 
     assert r["users"].shape == users.shape
     assert r["items"].shape == items.shape
@@ -124,8 +125,10 @@ def test_to_df_fails_with_mismatched_inputs(sample_dataset):
     d = DatasetEncoder()
     d.fit(users=users, items=items)
     encoded = d.transform(users=users, items=items)
-    recommended = [np.random.choice(encoded["items"], 10, replace=False)
-                   for _ in range(int(len(users)/2))]
+    recommended = [
+        np.random.choice(encoded["items"], 10, replace=False)
+        for _ in range(int(len(users) / 2))
+    ]
 
     with pytest.raises(ValueError):
         d.to_df(users, recommended)

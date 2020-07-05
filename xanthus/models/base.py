@@ -123,7 +123,9 @@ class NeuralRecommenderModel(RecommenderModel):
         self._config = kwargs
         self._fit_params = fit_params
 
-    def fit(self, dataset: Dataset, **kwargs: Optional[Any]) -> "NeuralRecommenderModel":
+    def fit(
+        self, dataset: Dataset, **kwargs: Optional[Any]
+    ) -> "NeuralRecommenderModel":
         """
         Fit the model to a provided Dataset.
 
@@ -165,7 +167,7 @@ class NeuralRecommenderModel(RecommenderModel):
                 initial_epoch=i,
                 **fit_params,
                 validation_data=([vux, vix], vy),
-                **kwargs
+                **kwargs,
             )
 
         return self

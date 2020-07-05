@@ -43,7 +43,7 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
         *args: Optional[Any],
         layers: Tuple[int, ...] = (64, 32, 16, 8),
         activations: str = "relu",
-        l2_reg: float = 0.0,
+        l2_reg: float = 1e-3,
         **kwargs: Optional[Any]
     ):
         """Initialize a MultiLayerPerceptronModel."""
@@ -103,7 +103,7 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
             n_items, n_item_dim, n_factors
         )
 
-        body = Concatenate()([user_factors, user_bias, item_factors, item_bias])
+        body = Concatenate()([user_factors, item_factors])
 
         for layer in self._layers:
             body = Dense(
@@ -112,7 +112,7 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
                 activation=self._activations,
             )(body)
 
-        output = Dense(1, activation="sigmoid")(body)
+        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(body)
 
         return Model(inputs=[user_input, item_input], outputs=output)
 
@@ -146,7 +146,7 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
         *args: Optional[Any],
         layers: Tuple[int, ...] = (64, 32, 16, 8),
         activations: str = "relu",
-        l2_reg: float = 0.0,
+        l2_reg: float = 1e-3,
         **kwargs: Optional[Any]
     ):
         """Initialize a MultiLayerPerceptronModel."""
@@ -210,7 +210,7 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
         )
 
         mlp_body = Concatenate()(
-            [mlp_user_factors, mlp_user_bias, mlp_item_factors, mlp_item_bias]
+            [mlp_user_factors, mlp_item_factors]
         )
 
         for layer in self._layers:
@@ -231,7 +231,7 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
 
         body = Concatenate()([mf_body, mlp_body])
 
-        output = Dense(1, activation="sigmoid")(body)
+        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(body)
 
         return Model(inputs=[user_input, item_input], outputs=output)
 

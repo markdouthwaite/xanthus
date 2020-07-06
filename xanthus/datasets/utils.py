@@ -333,3 +333,7 @@ def groupby(key: ndarray, values: ndarray) -> Tuple[ndarray, List[ndarray]]:
     grouped = np.split(x[:, 1], np.cumsum(counts)[:-1])
 
     return groups, grouped
+
+
+def as_implicit(a):
+    return np.ones_like(a)

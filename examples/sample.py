@@ -7,15 +7,18 @@ from xanthus.evaluate import he_sampling, score, metrics, leave_one_out
 
 np.random.seed(42)
 tensorboard = callbacks.TensorBoard(log_dir='./logs', profile_batch=5)
+early_stop = callbacks.EarlyStopping(
+    monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto',
+    baseline=None, restore_best_weights=False
+)
 
+df = pd.read_csv(
+    "../data/movielens-1m/ratings.dat",
+    names=["userId", "movieId", "rating", "timestamp"],
+    delimiter="::",
+)
 
-# df = pd.read_csv(
-#     "../data/movielens-1m/ratings.dat",
-#     names=["userId", "movieId", "rating", "timestamp"],
-#     delimiter="::",
-# )
-
-df = pd.read_csv("../data/movielens-100k/ratings.csv")
+# df = pd.read_csv("../data/movielens-100k/ratings.csv")
 
 df = df.rename(columns={"userId": "user", "movieId": "item"})
 print("loaded")
@@ -45,12 +48,12 @@ _, test_items, _ = test_dataset.to_components(shuffle=False)
 
 print("get test items")
 
-model = GMFModel(
-    fit_params=dict(epochs=15, batch_size=256), n_factors=64, negative_samples=5
-)
+# model = GMFModel(
+#     fit_params=dict(epochs=10, batch_size=256), n_factors=8, negative_samples=1
+# )
+model = baseline.MatrixFactorizationModel(method="als", factors=8, iterations=15)
 
 print("got model")
-# model = baseline.MatrixFactorizationModel(method="als", factors=64, iterations=15)
 
 model.fit(train_dataset)
 

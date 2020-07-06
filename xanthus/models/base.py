@@ -17,6 +17,7 @@ from tensorflow.keras.losses import BinaryCrossentropy, Loss
 from sklearn.model_selection import train_test_split
 
 from xanthus.datasets import Dataset
+from xanthus.evaluate import he_sampling, score, metrics
 
 
 Metric = Callable[[List[int], List[int], Optional[Any]], float]
@@ -124,7 +125,10 @@ class NeuralRecommenderModel(RecommenderModel):
         self._fit_params = fit_params
 
     def fit(
-        self, dataset: Dataset, **kwargs: Optional[Any]
+        self,
+        dataset: Dataset,
+        test_dataset: Optional[Dataset] = None,
+        **kwargs: Optional[Any],
     ) -> "NeuralRecommenderModel":
         """
         Fit the model to a provided Dataset.
@@ -151,6 +155,10 @@ class NeuralRecommenderModel(RecommenderModel):
 
         epochs, fit_params = self._unpack_fit_params()
 
+        if test_dataset is not None:
+            users, items = he_sampling(test_dataset, dataset)
+            _, test_items, _ = test_dataset.to_components(shuffle=False)
+
         for i in range(epochs):
             user_x, item_x, y = dataset.to_components(
                 negative_samples=self._negative_samples
@@ -169,6 +177,14 @@ class NeuralRecommenderModel(RecommenderModel):
                 validation_data=([vux, vix], vy),
                 **kwargs,
             )
+
+            if test_dataset is not None:
+                recommended = self.predict(test_dataset, users=users, items=items, n=10)
+                print(
+                    "t-nDCG",
+                    score(metrics.truncated_ndcg, test_items, recommended).mean(),
+                )
+                print("HR@k", score(metrics.hit_ratio, test_items, recommended).mean())
 
         return self
 

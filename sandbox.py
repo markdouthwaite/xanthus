@@ -1,18 +1,17 @@
-import numpy as np
-from xanthus.evaluate import score, metrics
-
-options = np.arange(0, 1000)
+import pandas as pd
+from xanthus.datasets import utils
 
 
-actual = []
-predicted = []
-for i in range(100):
-    a = np.random.choice(options, 6)
-    p = np.random.choice(a, 3)
-    p_ = np.random.choice(options[~np.isin(options, a)], 3)
-    p = np.concatenate([p, p_])
-    actual.append(a)
-    predicted.append(p)
+data = [["jane smith", "london", "doctor"],
+        ["dave davey", "manchester", "spaceman"],
+        ["john appleseed", "san francisco", "corporate shill"],
+        ["jenny boo", "paris", "ninja"]]
 
+# raw_meta = pd.DataFrame(data=data, columns=["user", "location", "occupation"])
 
-print(score(metrics.precision_at_k, actual, predicted).mean())
+raw_meta = pd.read_csv("data/movielens-100k/movies.csv")
+raw_meta = raw_meta.rename(columns={"movieId": "item"})
+
+meta = utils.fold(raw_meta, "item", ["genres"], fn=lambda s: (_.lower() for _ in s.split("|")))
+
+print(meta)

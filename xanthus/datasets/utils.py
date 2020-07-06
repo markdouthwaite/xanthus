@@ -7,6 +7,7 @@ Copyright (c) 2018-2020 Mark Douthwaite
 from typing import Optional, Union, List, Set, Iterator, Tuple, Any, Callable
 from itertools import islice
 
+from pandas import DataFrame
 from scipy.sparse import coo_matrix, csr_matrix, dok_matrix
 import numpy as np
 from numpy import random, ones_like, ndarray, zeros
@@ -335,5 +336,101 @@ def groupby(key: ndarray, values: ndarray) -> Tuple[ndarray, List[ndarray]]:
     return groups, grouped
 
 
-def as_implicit(a):
+def as_implicit(a: ndarray) -> ndarray:
+    """
+    Utility method for casting all scores as implicit (i.e. all ones).
+
+    In practice, a sugary alias for `lambda _: ones_like(_)`.
+
+    Parameters
+    ----------
+    a: ndarray
+        An array of floats corresponding to user-item scores.
+
+    Returns
+    -------
+    output: ndarray
+        An array of ones. Simple, really.
+
+    """
+
     return np.ones_like(a)
+
+
+def fold(
+    df: DataFrame,
+    key: str,
+    cols: List[str],
+    fn: Optional[Callable[[str], Iterator[str]]] = None,
+    deduplicate: bool = True,
+) -> DataFrame:
+    """
+    'Fold' a wide DataFrame into a DataFrame in the correct format to be passed to a
+    xanthus Dataset (i.e. a DataFrame with two columns, '{key}' and 'tag').
+
+    Parameters
+    ----------
+    df: DataFrame
+        An input dataframe of the format:
+
+            key|cols{0}|...|cols{n}
+            :-:|:-----:|:-:|:-----:
+            ...
+
+        Where 'key' and 'cols{0}, ..., cols{n}' correspond to the 'key' and 'cols'
+        parameter values. See the example below for more details.
+    key: str
+        The primary key (e.g. unique customer ID) of the input DataFrame.
+    cols: list
+        A list of column names to be 'folded' (i.e. metadata fields).
+    fn: callable, optional
+        An optional callable that can be used, for example, to convert a cell in a
+        DataFrame into a set of tokens. This can be used on the MovieLens dataset to
+        unpack movie genres, for example.
+    deduplicate: bool
+        Deduplicate the resulting frame to ensure all key-tag pairs occur exactly once.
+
+    Returns
+    -------
+    output: DataFrame
+        A 'folded' DataFrame ready to be used as input to a Dataset
+
+    Examples
+    --------
+
+    >>> import pandas as pd
+    >>> data = [["jane smith", "london", "doctor"],
+    ...         ["dave davey", "manchester", "spaceman"],
+    ...         ["john appleseed", "san francisco", "corporate shill"],
+    ...         ["jenny boo", "paris", "ninja"]]
+    >>> raw_meta = pd.DataFrame(data=data,
+    ...                            columns=["user", "location", "occupation"])
+    >>> meta = fold(raw_meta, "user", ["location", "occupation"])
+    >>> meta
+                 user              tag
+    0      jane smith           london
+    1      jane smith           doctor
+    2      dave davey       manchester
+    3      dave davey         spaceman
+    4  john appleseed    san francisco
+    5  john appleseed  corporate shill
+    6       jenny boo            paris
+    7       jenny boo            ninja
+
+    """
+
+    tags = df[cols].values.tolist()
+    keys = df[key].values.tolist()
+
+    if fn is None:
+        pairs = ((k, t) for i, k in enumerate(keys) for t in tags[i])
+    else:
+        pairs = (
+            (k, t)
+            for i, k in enumerate(keys)
+            for t in (e for _ in tags[i] for e in fn(_))
+        )
+
+    output = DataFrame(data=pairs, columns=[key, "tag"])
+
+    return output.drop_duplicates([key, "tag"])

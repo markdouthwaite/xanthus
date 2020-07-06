@@ -97,10 +97,10 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
 
         # mlp block
         user_input, user_bias, user_factors = utils.get_embedding_block(
-            n_users, n_user_dim, int(self._layers[0]/2)
+            n_users, n_user_dim, int(self._layers[0] / 2)
         )
         item_input, item_bias, item_factors = utils.get_embedding_block(
-            n_items, n_item_dim, int(self._layers[0]/2)
+            n_items, n_item_dim, int(self._layers[0] / 2)
         )
 
         body = Concatenate()([user_factors, item_factors])
@@ -205,10 +205,10 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
 
         # mlp block
         user_input, mlp_user_bias, mlp_user_factors = utils.get_embedding_block(
-            n_users, n_user_dim, int(self._layers[0]/2)
+            n_users, n_user_dim, int(self._layers[0] / 2)
         )
         item_input, mlp_item_bias, mlp_item_factors = utils.get_embedding_block(
-            n_items, n_item_dim, int(self._layers[0]/2)
+            n_items, n_item_dim, int(self._layers[0] / 2)
         )
 
         mlp_body = Concatenate()([mlp_user_factors, mlp_item_factors])

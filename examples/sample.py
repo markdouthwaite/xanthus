@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras import callbacks
 from xanthus.datasets import Dataset, DatasetEncoder, utils
-from xanthus.models import GeneralizedMatrixFactorizationModel as GMFModel, baseline
+from xanthus.models import MultiLayerPerceptronModel as GMFModel, baseline
 from xanthus.evaluate import he_sampling, score, metrics, leave_one_out
 
 np.random.seed(42)
+
 tensorboard = callbacks.TensorBoard(log_dir='./logs', profile_batch=5)
 
 early_stop = callbacks.EarlyStopping(
@@ -116,9 +117,9 @@ HR@k 0.8
 t-nDCG 0.5674754101237157
 HR@k 0.8245901639344262
 
-# GMF - 100k @ 25 (n=16, m=2, s=1)
-t-nDCG 0.5942530898153658
-HR@k 0.8459016393442623
+# GMF - 100k @ 15 (n=16, m=3, s=4)
+t-nDCG 0.6081511034467256
+HR@k 0.8295081967213115
 
 # ALS - 100k @ 15 (n=16)
 t-nDCG 0.6029315694478758

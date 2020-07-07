@@ -92,15 +92,20 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
         [2] https://github.com/hexiangnan/neural_collaborative_filtering
         """
 
-        n_users = dataset.all_users.shape[0]
-        n_items = dataset.all_items.shape[0]
+        n_user_vocab = dataset.all_users.shape[0]
+        n_item_vocab = dataset.all_items.shape[0]
+
+        if dataset.user_meta is not None:
+            n_user_vocab += dataset.user_meta.shape[1]
+        if dataset.item_meta is not None:
+            n_item_vocab += dataset.item_meta.shape[1]
 
         # mlp block
         user_input, user_bias, user_factors = utils.get_embedding_block(
-            n_users, n_user_dim, int(self._layers[0] / 2)
+            n_user_vocab, n_user_dim, int(self._layers[0] / 2)
         )
         item_input, item_bias, item_factors = utils.get_embedding_block(
-            n_items, n_item_dim, int(self._layers[0] / 2)
+            n_item_vocab, n_item_dim, int(self._layers[0] / 2)
         )
 
         body = Concatenate()([user_factors, item_factors])
@@ -200,15 +205,20 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
 
         """
 
-        n_users = dataset.all_users.shape[0]
-        n_items = dataset.all_items.shape[0]
+        n_user_vocab = dataset.all_users.shape[0]
+        n_item_vocab = dataset.all_items.shape[0]
+
+        if dataset.user_meta is not None:
+            n_user_vocab += dataset.user_meta.shape[1]
+        if dataset.item_meta is not None:
+            n_item_vocab += dataset.item_meta.shape[1]
 
         # mlp block
         user_input, mlp_user_bias, mlp_user_factors = utils.get_embedding_block(
-            n_users, n_user_dim, int(self._layers[0] / 2)
+            n_user_vocab, n_user_dim, int(self._layers[0] / 2)
         )
         item_input, mlp_item_bias, mlp_item_factors = utils.get_embedding_block(
-            n_items, n_item_dim, int(self._layers[0] / 2)
+            n_item_vocab, n_item_dim, int(self._layers[0] / 2)
         )
 
         mlp_body = Concatenate()([mlp_user_factors, mlp_item_factors])
@@ -222,10 +232,10 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
 
         # mf block
         user_input, mf_user_bias, mf_user_factors = utils.get_embedding_block(
-            n_users, n_user_dim, n_factors, inputs=user_input,
+            n_user_vocab, n_user_dim, n_factors, inputs=user_input,
         )
         item_input, mf_item_bias, mf_item_factors = utils.get_embedding_block(
-            n_items, n_item_dim, n_factors, inputs=item_input,
+            n_item_vocab, n_item_dim, n_factors, inputs=item_input,
         )
         mf_body = Multiply()([mf_user_factors, mf_item_factors])
 

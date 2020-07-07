@@ -287,11 +287,19 @@ class GeneralizedMatrixFactorizationModel(base.NeuralRecommenderModel):
         [2] https://github.com/hexiangnan/neural_collaborative_filtering
         """
 
+        n_user_vocab = dataset.all_users.shape[0]
+        n_item_vocab = dataset.all_items.shape[0]
+
+        if dataset.user_meta is not None:
+            n_user_vocab += dataset.user_meta.shape[1]
+        if dataset.item_meta is not None:
+            n_item_vocab += dataset.item_meta.shape[1]
+
         user_input, user_bias, user_factors = utils.get_embedding_block(
-            dataset.all_users.shape[0], n_user_dim, n_factors, **kwargs
+            n_user_vocab, n_user_dim, n_factors, **kwargs
         )
         item_input, item_bias, item_factors = utils.get_embedding_block(
-            dataset.all_items.shape[0], n_item_dim, n_factors, **kwargs
+            n_item_vocab, n_item_dim, n_factors, **kwargs
         )
 
         body = Multiply()([user_factors, item_factors])

@@ -110,6 +110,7 @@ class NeuralRecommenderModel(RecommenderModel):
         loss: Loss = BinaryCrossentropy(),
         optimizer: Optimizer = Adam(lr=1e-3),
         negative_samples: int = 0,
+        n_meta: int = 0,
         fit_params: Optional[Dict[str, Any]] = None,
         **kwargs: Optional[Any],
     ):
@@ -122,6 +123,7 @@ class NeuralRecommenderModel(RecommenderModel):
         self._optimizer = optimizer
         self._negative_samples = negative_samples
         self._config = kwargs
+        self._n_meta = n_meta
         self._fit_params = fit_params
 
     def fit(
@@ -149,8 +151,11 @@ class NeuralRecommenderModel(RecommenderModel):
 
         """
 
+        n_dim = self._n_meta + 1
         if self.model is None:
-            self.model = self._build_model(dataset, **self._config)
+            self.model = self._build_model(
+                dataset, n_user_dim=n_dim, n_item_dim=n_dim, **self._config
+            )
             self.model.compile(optimizer=self._optimizer, loss=self._loss)
 
         epochs, fit_params = self._unpack_fit_params()
@@ -161,7 +166,7 @@ class NeuralRecommenderModel(RecommenderModel):
 
         for i in range(epochs):
             user_x, item_x, y = dataset.to_components(
-                negative_samples=self._negative_samples
+                negative_samples=self._negative_samples, output_dim=self._n_meta + 1
             )
 
             tux, vux, tix, vix, ty, vy = train_test_split(
@@ -227,13 +232,24 @@ class NeuralRecommenderModel(RecommenderModel):
         """
 
         recommended = []
+
         items = items if items is not None else dataset.all_items
         users = users if users is not None else dataset.users
 
-        for i, user in enumerate(users):
-            x = [np.asarray([user] * len(items[i])), items[i]]
+        if self._n_meta > 0:
+            items = (dataset.iter_item(e, n_dim=self._n_meta + 1) for e in items)
+            users = dataset.iter_user(users, n_dim=self._n_meta + 1)
+
+        for (user, target_items) in zip(users, items):
+            target_items = np.asarray(list(target_items))
+
+            if len(target_items.shape) == 1:
+                target_items = target_items.reshape(-1, 1)
+
+            x = [np.asarray([user.tolist()] * len(target_items)), target_items]
+
             h = self.model(x).numpy().flatten()
-            ranked = self._rank(h, n, encodings=items[i], excluded=excluded)
+            ranked = self._rank(h, n, encodings=target_items[:, 0], excluded=excluded)
             recommended.append(ranked[:n])
 
         return recommended

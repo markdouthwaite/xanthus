@@ -256,17 +256,37 @@ class Dataset:
         # stack user ids with associated user metadata.
         if user_meta is not None and output_dim > 1:
             users = self._iter_meta(users, user_meta, output_dim)
+        elif output_dim > 1:
+            users = np.c_[users, np.zeros((len(users), output_dim - 1), dtype=int)]
         else:
             users = users.reshape(-1, 1)
 
         # stack item ids with associated item metadata.
         if item_meta is not None and output_dim > 1:
             items = self._iter_meta(items, item_meta, output_dim)
+        elif output_dim > 1:
+            items = np.c_[items, np.zeros((len(items), output_dim - 1))]
         else:
             items = items.reshape(-1, 1)
 
         for (user, item, rating) in zip(users, items, ratings):
             yield user, item, rating
+
+    def _iter_ids(self, ids: ndarray, mat: coo_matrix, n_dim: int) -> Iterator[ndarray]:
+        if mat is not None:
+            yield from self._iter_meta(ids, mat.tocsr(), n_dim)
+        elif n_dim > 1:
+            ids = np.c_[ids, np.zeros((len(ids), n_dim - 1), dtype=int)]
+            yield from (_ for _ in ids)
+        else:
+            ids = np.c_[ids, np.zeros((len(ids), n_dim - 1), dtype=int)]
+            yield from (_ for _ in ids.reshape(-1, 1))
+
+    def iter_user(self, users: ndarray, n_dim: int = 1) -> Iterator[ndarray]:
+        yield from self._iter_ids(users, self.user_meta, n_dim)
+
+    def iter_item(self, items: ndarray, n_dim = 1) -> Iterator[ndarray]:
+        yield from self._iter_ids(items, self.item_meta, n_dim)
 
     @staticmethod
     def _iter_meta(ids: ndarray, meta: csr_matrix, n_dim: int) -> Iterator[List[int]]:
@@ -392,7 +412,7 @@ class Dataset:
                 users=user_meta["user"], user_tags=user_meta["tag"]
             )
             user_meta = construct_coo_matrix(
-                encoded["users"], encoded["user_features"], shape=user_meta_shape
+                encoded["users"], encoded["user_tags"], shape=user_meta_shape
             )
 
         if item_meta is not None:
@@ -404,7 +424,7 @@ class Dataset:
                 items=item_meta["item"], item_tags=item_meta["tag"]
             )
             item_meta = construct_coo_matrix(
-                encoded["items"], encoded["item_features"], shape=item_meta_shape
+                encoded["items"], encoded["item_tags"], shape=item_meta_shape
             )
 
         return cls(

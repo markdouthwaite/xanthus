@@ -3,3 +3,4 @@ black
 tensorflow
 implicit==0.4.0
 scikit-learn
+jupyter

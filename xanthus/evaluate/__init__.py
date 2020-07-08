@@ -14,4 +14,4 @@ from .metrics import (
     pak,
 )
 
-from .utils import split, he_sampling
+from .utils import split, he_sampling, leave_one_out

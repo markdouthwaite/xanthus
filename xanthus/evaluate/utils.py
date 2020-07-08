@@ -13,15 +13,12 @@ from numpy import (
     in1d,
     concatenate,
     ndarray,
-    split as _split,
-    cumsum,
     unique,
-    argsort,
     c_,
 )
 from numpy.random import choice
 
-from ..dataset import Dataset
+from ..datasets import Dataset, groupby
 
 
 def _ignore(df: DataFrame, elements: ndarray, key: str, frac: float) -> DataFrame:
@@ -66,7 +63,7 @@ def split(
     deduplicate: bool = True,
 ) -> Tuple[DataFrame, ...]:
     """
-    A recommendation system focused train-test split utility function.
+    A recommendation-system focused train-test split utility function.
 
     This function was inspired by the Azure ML Studio 'recommender split' utility [1].
 
@@ -202,7 +199,7 @@ def split(
 
 def he_sampling(
     a: Dataset, b: Dataset, n_samples: int = 100
-) -> Tuple[ndarray, List[List[ndarray]]]:
+) -> Tuple[ndarray, List[ndarray]]:
     """
     Sample a dataset 'a' with 'n' negative samples given interactions in dataset 'a'
     and 'b'.
@@ -214,7 +211,7 @@ def he_sampling(
     and 'a' corresponds to the 'test' dataset with 'n' for each user with
     n_interactions > n. For each user in 'a', the function will return that user's 'n'
     left-out interactions, plus 'n_samples' negative samples (items the user has not
-    interacted with in both the 'train' and 'test' datasets.
+    interacted with in both the 'train' and 'test' datasets).
 
     Parameters
     ----------
@@ -240,18 +237,22 @@ def he_sampling(
 
     """
 
-    users, items, ratings = a.to_arrays(
+    users, items, _ = a.to_components(
         negative_samples=n_samples,
         aux_matrix=b.interactions.tocsr(),
         shuffle=False,
         sampling_mode="absolute",
     )
 
-    x = c_[users, items]
-    ind = argsort(x[:, 0])
-    x = x[ind]
+    unique_users = unique(users)
 
-    unique_users, user_counts = unique(x[:, 0], return_counts=True)
-    grouped = _split(x[:, 1], cumsum(user_counts)[: -1])
+    sampled_users, sampled_items = (
+        users[len(unique_users) :],
+        items[len(unique_users) :],
+    )
+
+    groups, grouped = groupby(sampled_users, sampled_items)
+
+    grouped = c_[items[: len(unique_users)], grouped]
 
     return unique_users, grouped

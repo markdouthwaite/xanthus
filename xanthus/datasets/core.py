@@ -4,46 +4,110 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
-import os
-from typing import Optional, Any, Generator, Tuple, Callable, Iterator
+from typing import Optional, Any, List, Tuple, Callable, Iterator
 from collections import defaultdict
 
-from scipy.sparse import coo_matrix, csr_matrix
 from numpy import ndarray
 from pandas import DataFrame
+from scipy.sparse import coo_matrix, csr_matrix
 
 import numpy as np
 from .encoder import DatasetEncoder
 
-from .utils import sample_negatives, construct_coo_matrix
+
+from .utils import construct_coo_matrix, sample_negatives, SamplerCallable
 
 
 class Dataset:
     """
-    A simple recommender dataset abstraction with utilities training and evaluating
-    recommendation models.
+    A simple dataset abstraction with utilities for training and evaluating
+    recommendation models. It was designed to help implement the methodology
+    outlined in He et al. (i.e. negative sampling), alongside extensions mention in said
+    paper (using user- & item-metadata with implicit feedback).
+
+    With this class you can:
+    * Lazily generate user-item vectors for model training and evaluation.
+    * Lazily map users and items to user and item metadata.
+    * Generate negative samples. This can be used for training data and to create
+      and to build evaluation data sets to test model ranking performance.
+    * Easily generate the above directly from a Pandas DataFrame.
+
+    In most cases, you'll find it easiest to simply call the Dataset.from_df method,
+    below.
+
+    Parameters
+    ----------
+    interactions: coo_matrix
+        A user-item interaction matrix of the shape (NxM), where N is the number of
+        users, and M is the number of items.
+    user_meta: coo_matrix
+        A user-user_metadata matrix of the shape (Nx(N+K)), where N is the number of
+        users, and K is the number of unique tags associated with users.
+    item_meta: coo_matrix
+        A item-item_metadata matrix of the shape (Nx(N+K)), where N is the number of
+        items, and K is the number of unique tags associated with items.
+    encoder: DatasetEncoder
+        A _fitted_ DatasetEncoder object. This should have been fitted on the same data
+        that was used to generate the `interaction`, `user_meta` and `item_meta`
+        matrices. Note that calling the `from_df` classmethod will automatically
+        initialise and fit an encoder for you.
+    sampler: SamplerCallable
+        This is a callable that is used to sample from your interactions data. A simple
+        negative sampler is provided, but you should feel free to experiment with
+        your own.
+
+    Notes
+    -----
+    * Tags are user- or item-metadata. For example, for movie metadata, for the movie
+      'Lord of the Rings: Fellowship of the Ring', the movie may have the ID '1', and
+      may have the tags: 'fantasy', 'adventure'. If these tags had the encodings '2' and
+      '3' respectively, then the elements (1, 2) and (1, 3) in the item metadata matrix
+      would be non-zero values.
+    * This class is not suitable for very large datasets, it could do with a bit of TLC
+      to make it more friendly with large use-cases.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.read_csv("data/movielens-100k/ratings.csv")
+    >>> df = df.rename(columns={"userId": "user", "movieId": "item"})
+    >>> ds = Dataset.from_df(df)
+    >>> for user, item, rating in ds.iter(shuffle=False):
+    ...    print(user, item, rating)
+    ...    break
+    ...
+    [1] [1] 4.0
+
+    >>> df = pd.read_csv("data/movielens-100k/ratings.csv")
+    >>> df = df.rename(columns={"userId": "user", "movieId": "item"})
+    >>> metadata = pd.read_csv("data/movielens-100k/movies.csv")
+    >>> item = metadata["movieId"]
+    >>> tags = metadata["genres"]
+    >>> data = ([item[i], tag] for i in range(len(item)) for tag in tags[i].split("|"))
+    >>> item_meta = pd.DataFrame(data=data, columns=["item", "tag"])
+    >>> ds = Dataset.from_df(df, item_meta=item_meta)
+    >>> for user, item, rating in ds.iter(output_dim=4, shuffle=False):
+    ...     print(user, item, rating)
+    ...     break
+    [1] [1, 9743, 9744, 9745] 4.0
 
     """
 
     def __init__(
         self,
         interactions: coo_matrix,
-        user_meta: Optional[coo_matrix] = None,
-        item_meta: Optional[coo_matrix] = None,
-        encoder: DatasetEncoder = None,
-    ) -> "Dataset":
+        user_meta: coo_matrix,
+        item_meta: coo_matrix,
+        encoder: DatasetEncoder,
+        sampler: SamplerCallable = sample_negatives,
+    ) -> None:
         """
-
-        Parameters
-        ----------
-        interactions
-        user_meta
-        item_meta
-        encoder
-
+        Initialise a Dataset.
         """
 
         self.encoder = encoder
+        self.sampler = sampler
+
         self.interactions = interactions
         self.user_meta = user_meta
         self.item_meta = item_meta
@@ -168,17 +232,15 @@ class Dataset:
         if negative_samples > 0:
             # the aux_matrix should include additional interactions you wish to consider
             # _exclusively_ for the purposes of generating negative samples.
-            if aux_matrix is not None:
-                interactions += aux_matrix
-
-            # run sampling.
-            users, items, ratings = self._concatenate_negative_samples(
+            users, items, ratings = self.sampler(
                 users,
                 items,
                 ratings,
                 interactions,
                 negative_samples,
-                mode=sampling_mode,
+                sampling_mode,
+                aux_matrix,
+                concat=True,
             )
 
         # optionally shuffle the users, items and ratings.
@@ -194,83 +256,61 @@ class Dataset:
         # stack user ids with associated user metadata.
         if user_meta is not None and output_dim > 1:
             users = self._iter_meta(users, user_meta, output_dim)
+        elif output_dim > 1:
+            users = np.c_[users, np.zeros((len(users), output_dim - 1), dtype=int)]
         else:
             users = users.reshape(-1, 1)
 
         # stack item ids with associated item metadata.
         if item_meta is not None and output_dim > 1:
             items = self._iter_meta(items, item_meta, output_dim)
+        elif output_dim > 1:
+            items = np.c_[items, np.zeros((len(items), output_dim - 1))]
         else:
             items = items.reshape(-1, 1)
 
         for (user, item, rating) in zip(users, items, ratings):
             yield user, item, rating
 
-    def _concatenate_negative_samples(
-        self,
-        users: ndarray,
-        items: ndarray,
-        ratings: ndarray,
-        mat: csr_matrix,
-        n: int,
-        **kwargs: Optional[Any]
-    ) -> Tuple[ndarray, ...]:
-        """
+    def _iter_ids(self, ids: ndarray, mat: coo_matrix, n_dim: int) -> Iterator[ndarray]:
+        if mat is not None:
+            yield from self._iter_meta(ids, mat.tocsr(), n_dim)
+        elif n_dim > 1:
+            ids = np.c_[ids, np.zeros((len(ids), n_dim - 1), dtype=int)]
+            yield from (_ for _ in ids)
+        else:
+            ids = np.c_[ids, np.zeros((len(ids), n_dim - 1), dtype=int)]
+            yield from (_ for _ in ids.reshape(-1, 1))
 
-        Parameters
-        ----------
-        users
-        items
-        ratings
-        mat
-        n
+    def iter_user(self, users: ndarray, n_dim: int = 1) -> Iterator[ndarray]:
+        yield from self._iter_ids(users, self.user_meta, n_dim)
 
-        Returns
-        -------
-
-        """
-
-        neg_users, neg_items, neg_ratings = self._sample_negatives(mat, n, **kwargs)
-
-        users = np.concatenate((users, neg_users))
-        items = np.concatenate((items, neg_items))
-        ratings = np.concatenate((ratings, neg_ratings))
-
-        return users, items, ratings
-
-    def _sample_negatives(
-        self, mat: csr_matrix, n: int, **kwargs: Optional[Any]
-    ) -> Tuple[ndarray, ...]:
-        """
-
-        Parameters
-        ----------
-        mat
-        n
-
-        Returns
-        -------
-
-        """
-        # Todo: sample n negatives for each positive.
-
-        data = np.asarray(list(sample_negatives(self.users, mat, n, **kwargs))).astype(
-            np.int32
-        )
-        return data[:, 0], data[:, 1], np.zeros(shape=data.shape[0])
+    def iter_item(self, items: ndarray, n_dim = 1) -> Iterator[ndarray]:
+        yield from self._iter_ids(items, self.item_meta, n_dim)
 
     @staticmethod
-    def _iter_meta(ids: ndarray, meta: csr_matrix, n_dim: int) -> Generator:
+    def _iter_meta(ids: ndarray, meta: csr_matrix, n_dim: int) -> Iterator[List[int]]:
         """
+        Lazily evaluate metadata in the provided CSR matrix.
 
         Parameters
         ----------
-        ids
-        meta
-        n_dim
+        ids: ndarray
+            An array of IDs. For items, this will correspond to individual item IDs.
+            For users, this will correspond to individual user IDs.
+        meta: csr_matrix
+            A sparse matrix of (NxM) dimensions, where N corresponds to the number of
+            user/item IDs (above) and M corresponds to the number of user/item metadata
+            features (vocab) in the dataset.
+        n_dim: int
+            The length of the output vectors. Makes sure this is large enough to
+            actually append some metadata to your output vectors (i.e. > 1).
 
         Returns
         -------
+        output: Iterator
+            An iterator, where each ID in the list is mapped to corresponding metadata.
+            The output shape of each element is then a list of 'n_dim' length.
 
         """
 
@@ -297,18 +337,32 @@ class Dataset:
         **kwargs: Optional[Any]
     ) -> "Dataset":
         """
+        Initialise the Dataset directly from an interactions DataFrame and optionally
+        from additional user_meta and item_meta DataFrames too.
 
         Parameters
         ----------
-        interactions
-        user_meta
-        item_meta
-        normalize
-        encoder
-        kwargs
+        interactions: coo_matrix
+            A user-item interaction matrix of the shape (NxM), where N is the number of
+            users, and M is the number of items.
+        user_meta: coo_matrix
+            A user-user_metadata matrix of the shape (Nx(N+K)), where N is the number of
+            users, and K is the number of unique tags associated with users.
+        item_meta: coo_matrix
+            A item-item_metadata matrix of the shape (Nx(N+K)), where N is the number of
+            items, and K is the number of unique tags associated with items.
+        normalize: callable, optional
+            Provide a normalization function to apply to your scores. If not provided,
+            you'll get what you put in. Simple, right?
+        encoder: DatasetEncoder, optional
+            Optionally provide a pre-trained DatasetEncoder. This can be useful if you
+            want to share the same encoder over two Datasets to preserve the same
+            encodings across the datasets.
 
         Returns
         -------
+        output: Dataset
+            A shiny new Dataset, ready for your next recommender experiment.
 
         """
 
@@ -358,7 +412,7 @@ class Dataset:
                 users=user_meta["user"], user_tags=user_meta["tag"]
             )
             user_meta = construct_coo_matrix(
-                encoded["users"], encoded["user_features"], shape=user_meta_shape
+                encoded["users"], encoded["user_tags"], shape=user_meta_shape
             )
 
         if item_meta is not None:
@@ -370,60 +424,21 @@ class Dataset:
                 items=item_meta["item"], item_tags=item_meta["tag"]
             )
             item_meta = construct_coo_matrix(
-                encoded["items"], encoded["item_features"], shape=item_meta_shape
+                encoded["items"], encoded["item_tags"], shape=item_meta_shape
             )
 
         return cls(
             interactions, user_meta=user_meta, item_meta=item_meta, encoder=encoder
         )
 
-    def to_arrays(
+    def to_components(
         self, *args: Optional[Any], **kwargs: Optional[Any]
     ) -> Tuple[ndarray, ...]:
-        """
-
-        Parameters
-        ----------
-        args
-        kwargs
-
-        Returns
-        -------
-
-        """
+        """Transform `iter` output into a set of arrays."""
 
         return tuple(map(np.asarray, zip(*self.iter(*args, **kwargs))))
 
-    def to_txt(
-        self, dirname: str, *args: Optional[Any], **kwargs: Optional[Any]
-    ) -> None:
-        """
-        Dump the dataset to a set of .txt files.
+    def __iter__(self) -> Iterator[Tuple[ndarray, ndarray, float]]:
+        """Iterate over the dataset."""
 
-        Parameters
-        ----------
-        dirname
-        args
-        kwargs
-
-        Returns
-        -------
-
-        """
-
-        os.makedirs(dirname, exist_ok=True)
-        users = open(os.path.join(dirname, "user.txt"), "ab")
-        items = open(os.path.join(dirname, "item.txt"), "ab")
-        ratings = open(os.path.join(dirname, "ratings.txt"), "ab")
-
-        for user, item, rating in self.iter(*args, **kwargs):
-            np.savetxt(users, np.atleast_2d(user), fmt="%i", delimiter=" ")
-            np.savetxt(items, np.atleast_2d(item), fmt="%i", delimiter=" ")
-            np.savetxt(ratings, np.atleast_1d(rating))
-
-        users.close()
-        items.close()
-        ratings.close()
-
-    def __iter__(self) -> Generator:
         yield from self.iter()

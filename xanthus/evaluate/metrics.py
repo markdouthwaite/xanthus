@@ -13,7 +13,11 @@ from typing import List, Callable, Tuple, Any, Optional
 from numpy import asarray, isin, unique, ndarray
 
 
-def _parfn(fn: Callable[[List[int], List[int]], float], args: Tuple[Any], **kwargs: Optional[Any]) -> float:
+def _parfn(
+    fn: Callable[[List[int], List[int]], float],
+    args: Tuple[Any],
+    **kwargs: Optional[Any],
+) -> float:
     """
     A utility function for unpacking arguments when a function is called inside a
     parallel map. You can't pickle lambdas!
@@ -46,7 +50,7 @@ def score(
         object containing up to 'M' relevant documents, and a second array-like object
         containing 'K' predicted relevant documents.
     actual: array-like
-        An array-like object where each element contains up to 'M' elements. Not that
+        An array-like object where each element contains up to 'M' elements. Note that
         this means this object may contain elements that are different lengths. This
         is expected. These are collections of relevant documents.
     predicted: array-like
@@ -75,8 +79,8 @@ def score(
     if n_cpu <= 2:
         output = [fn(a, p, **kwargs) for a, p in zip(actual, predicted)]
     else:
-        pool = mp.Pool(processes=n_cpu)
-        output = pool.map(partial(_parfn, fn, **kwargs), zip(actual, predicted))
+        with mp.Pool(processes=n_cpu) as pool:
+            output = pool.map(partial(_parfn, fn, **kwargs), zip(actual, predicted))
 
     return asarray(output)
 
@@ -212,6 +216,66 @@ def normalized_discounted_cumulative_gain(
         idcg += dcg_i
 
     return dcg / idcg
+
+
+def hit_ratio(actual: List[int], predicted: List[int], *_: Optional[Any]) -> float:
+    """
+    Compute the hit ratio (determine if a single element exists in predicted).
+
+    Parameters
+    ----------
+    actual: list
+        A list of at least one element, where the first element is checked to determine
+        if it appears in 'predicted'.
+    predicted: list
+        A list (potentially unordered) of items.
+
+    Returns
+    -------
+    output: float
+        Indicate whether the element exists or not.
+
+    References
+    ----------
+    [1] https://arxiv.org/pdf/1708.05024.pdf
+
+    """
+
+    if actual[0] in predicted:
+        return 1.0
+    else:
+        return 0.0
+
+
+def truncated_ndcg(actual: List[int], predicted: List[int], *_: Optional[Any]) -> float:
+    """
+    A special case of nDCG specifically to check if a single element exists in the
+    predicted set, and to compute the nDCG for this item only (i.e. for a single
+    element).
+
+    This implementation reflects the implementation found in [1], as described in [2].
+
+    Parameters
+    ----------
+    actual: list
+        A list of at least one element, where the first element is checked to determine
+        if it appears in 'predicted', and the nDCG computed for this element.
+    predicted: list
+        A list of ordered items.
+
+    References
+    ----------
+    [1] https://github.com/hexiangnan/neural_collaborative_filtering/blob/master/MLP.py
+    [2] https://arxiv.org/pdf/1708.05024.pdf
+
+    """
+
+    z = actual[0]
+    for i, e in enumerate(predicted):
+        if e == z:
+            return math.log(2) / math.log(i + 2)
+
+    return 0.0
 
 
 # aliases

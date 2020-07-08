@@ -27,6 +27,8 @@ def construct_coo_matrix(
     dtype: str = "float32",
     shape: Optional[Tuple[int, int]] = None,
 ) -> coo_matrix:
+    """Build a COO matrix."""
+
     r = r if r is not None else ones_like(p)
     return coo_matrix((r.astype(dtype), (p, q)), shape=shape)
 
@@ -38,6 +40,8 @@ def construct_dok_matrix(
     dtype: str = "float32",
     shape: Optional[Tuple[int, int]] = None,
 ) -> dok_matrix:
+    """Build a DOK matrix."""
+
     if shape is None:
         shape = (p.max() + 1, q.max() + 1)
 

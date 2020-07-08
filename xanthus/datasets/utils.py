@@ -366,7 +366,7 @@ def fold(
 ) -> DataFrame:
     """
     'Fold' a wide DataFrame into a DataFrame in the correct format to be passed to a
-    xanthus Dataset (i.e. a DataFrame with two columns, '{key}' and 'tag').
+    xanthus Dataset as metadata (i.e. a DataFrame with two columns, '{key}' and 'tag').
 
     Parameters
     ----------

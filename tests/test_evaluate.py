@@ -23,7 +23,7 @@ from numpy import (
 )
 from pandas import DataFrame
 
-from xanthus.datasets import DatasetEncoder, Dataset, groupby
+from xanthus.datasets import DatasetEncoder, Dataset, groupby, fold
 from xanthus.evaluate import (
     score,
     ndcg,
@@ -182,3 +182,25 @@ def test_precision_at_k_correctness():
         predicted.append(p)
 
     assert score(precision_at_k, actual, predicted).mean() == 0.5
+
+
+def test_fold_correctness():
+    data = [
+        ["jane smith", "london", "doctor"],
+        ["dave davey", "manchester", "spaceman"],
+        ["john appleseed", "san francisco", "corporate shill"],
+        ["jenny boo", "paris", "ninja"],
+    ]
+
+    raw_meta = DataFrame(data=data, columns=["user", "location", "occupation"])
+
+    meta = fold(
+        raw_meta, "user", ["location", "occupation"]
+    )
+
+    assert meta.shape[1] == 2
+    assert meta.shape[0] == len(asarray(data)[:, 1:].flatten())
+
+    for element in data:
+        tags = meta[meta["user"] == element[0]]["tag"].values.tolist()
+        assert all(_ in tags for _ in element[1:])

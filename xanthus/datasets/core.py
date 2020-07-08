@@ -272,7 +272,29 @@ class Dataset:
         for (user, item, rating) in zip(users, items, ratings):
             yield user, item, rating
 
+    def iter_user(self, users: ndarray, n_dim: int = 1) -> Iterator[ndarray]:
+        """Iterate over user metadata vectors of size 'n_dim'."""
+
+        yield from self._iter_ids(users, self.user_meta, n_dim)
+
+    def iter_item(self, items: ndarray, n_dim: int = 1) -> Iterator[ndarray]:
+        """Iterate over item metadata vectors of size 'n_dim'."""
+
+        yield from self._iter_ids(items, self.item_meta, n_dim)
+
     def _iter_ids(self, ids: ndarray, mat: coo_matrix, n_dim: int) -> Iterator[ndarray]:
+        """
+        Iterate over metadata vectors of size 'n_dim' encoded in 'mat'.
+
+        If too few metadata elements are found to satisfy 'n_dim' requirement, the
+        vectors will be padded with zeros to ensure homogeneity.
+
+        See Also
+        --------
+        Dataset._iter_meta
+
+        """
+
         if mat is not None:
             yield from self._iter_meta(ids, mat.tocsr(), n_dim)
         elif n_dim > 1:
@@ -281,12 +303,6 @@ class Dataset:
         else:
             ids = np.c_[ids, np.zeros((len(ids), n_dim - 1), dtype=int)]
             yield from (_ for _ in ids.reshape(-1, 1))
-
-    def iter_user(self, users: ndarray, n_dim: int = 1) -> Iterator[ndarray]:
-        yield from self._iter_ids(users, self.user_meta, n_dim)
-
-    def iter_item(self, items: ndarray, n_dim = 1) -> Iterator[ndarray]:
-        yield from self._iter_ids(items, self.item_meta, n_dim)
 
     @staticmethod
     def _iter_meta(ids: ndarray, meta: csr_matrix, n_dim: int) -> Iterator[List[int]]:

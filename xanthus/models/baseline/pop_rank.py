@@ -1,4 +1,10 @@
-from typing import Optional, Dict, Any
+"""
+The MIT License
+
+Copyright (c) 2018-2020 Mark Douthwaite
+"""
+
+from typing import Optional
 import numpy as np
 from numpy import ndarray
 

@@ -19,6 +19,22 @@ class DatasetEncoder:
     The objective of this class is to help you manage, save and load your encodings, and
     to give you a few little utilities to help make building a recommendation model that
     bit simpler.
+
+    Examples
+    --------
+
+    >>> from xanthus.datasets import DatasetEncoder
+    >>> users = ["jane.smith@email.com", "john.appleseed@email.com"]
+    >>> items = ["action-movie-0001", "action-movie-0002"]
+    >>> encoder = DatasetEncoder()
+    >>> encoded = encoder.fit_transform(users=users, items=items)
+    >>> output = encoder.to_df(encoded["users"],
+    ...                        [encoded["items"] for _ in encoded["users"]])
+    >>> print(output)
+                             id             item_0             item_1
+    0      jane.smith@email.com  action-movie-0001  action-movie-0002
+    1  john.appleseed@email.com  action-movie-0001  action-movie-0002
+
     """
 
     def __init__(self) -> None:

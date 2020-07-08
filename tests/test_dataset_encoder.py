@@ -112,7 +112,7 @@ def test_to_df_succeeds(sample_dataset):
     encoded = d.transform(users=users, items=items)
     recommended = [np.random.choice(encoded["items"], 10, replace=False) for _ in users]
 
-    rdf = d.to_df(encoded["users"], recommended)
+    rdf = d.to_df(encoded["users"], recommended, target_col="user")
 
     assert np.all(rdf["user"].values == users)
 

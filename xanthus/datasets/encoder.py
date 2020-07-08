@@ -10,8 +10,6 @@ import numpy as np
 from numpy import ndarray
 from pandas import DataFrame
 
-# test: different offsets.
-
 
 class DatasetEncoder:
     """
@@ -21,20 +19,14 @@ class DatasetEncoder:
     The objective of this class is to help you manage, save and load your encodings, and
     to give you a few little utilities to help make building a recommendation model that
     bit simpler.
-
-    Parameters
-    ----------
-    offset: int
-        The point at which encodings 'start'. By default, '0' is reserved (hence '1').
-
     """
 
-    def __init__(self, offset: int = 1) -> None:
+    def __init__(self) -> None:
         """
         Initialize the DatasetEncoder.
         """
 
-        self._offset = offset
+        self._offset = 1
         self.user_mapping: Dict[str, int] = {}
         self.item_mapping: Dict[str, int] = {}
         self.user_tag_mapping: Dict[str, int] = {}
@@ -53,16 +45,33 @@ class DatasetEncoder:
         item_tags: Optional[List[str]] = None,
     ) -> Dict[str, ndarray]:
         """
+        Transform a given set of users, items or their related metadata into a set of
+        encodings.
 
         Parameters
         ----------
-        users
-        items
-        user_tags
-        item_tags
+        users: list
+            A list of user IDs to transform into encodings.
+        items: list
+            A list of item IDs to transform into encodings.
+        user_tags: list
+            A list of item meta data to transform into encodings.
+        item_tags: list
+            A list of item meta data to transform into encodings.
 
         Returns
         -------
+        output: dict
+            A dictionary where each input (users, items, user_tags, item_tags)
+            that has been passed to the method is returned as a key mapped to an array
+            of encoded values. The order of input values is preserved.
+
+        Notes
+        -----
+        * The elements in users/items and user_tags/item_tags need not be aligned for
+          this method to work (i.e. the list of users and items need not be valid
+          user item pairs in the input set). Indeed, you can encode only users, only
+          items, their metadata or any combination of the set.
 
         """
 
@@ -154,16 +163,25 @@ class DatasetEncoder:
         item_tags: Optional[List[int]] = None,
     ) -> Dict[str, ndarray]:
         """
+        Given a set of encoded inputs, return their original values.
 
         Parameters
         ----------
-        users
-        items
-        user_tags
-        item_tags
+        users: list, optional
+            A list of users to decode.
+        items: list, optional
+            A list of items to decode.
+        user_tags: list, optional
+            A list of user features to decode.
+        item_tags: list, optional
+            A list of item features to decode.
 
         Returns
         -------
+        output: dict
+            A dictionary where each encoded input (users, items, user_tags, item_tags)
+            that has been passed to the method is returned as a key mapped to an array
+            of decoded values. The order of input values is preserved.
 
         """
 
@@ -192,12 +210,8 @@ class DatasetEncoder:
         return output
 
     def get_params(self) -> Dict[str, Dict[str, int]]:
-        """
+        """Get the encodings of the current DatasetEncoder."""
 
-        Returns
-        -------
-
-        """
         return dict(
             user_mapping=self.user_mapping,
             item_mapping=self.item_mapping,
@@ -206,16 +220,8 @@ class DatasetEncoder:
         )
 
     def set_params(self, params: Dict[str, Dict[str, int]]) -> "DatasetEncoder":
-        """
+        """Set the encodings to one of your own. What could possibly go wrong?!"""
 
-        Parameters
-        ----------
-        params
-
-        Returns
-        -------
-
-        """
         self.user_mapping = params.get("user_mapping", self.user_mapping)
         self.item_mapping = params.get("item_mapping", self.item_mapping)
         self.user_tag_mapping = params.get("user_tag_mapping", self.user_tag_mapping)
@@ -224,50 +230,85 @@ class DatasetEncoder:
 
     def to_df(
         self,
-        users: List[int],
+        targets: List[int],
         items: List[List[int]],
-        user_col: str = "user",
-        item_cols: str = "item_{0}",
+        mode: str = "users",
+        target_col: str = "id",
+        item_col_fmt: str = "item_{0}",
         transform: Callable[[List[int]], List[str]] = None,
     ) -> DataFrame:
         """
+        Transform a list of users and associated items into a Pandas DataFrame.
+
+        This method is intended to act as a utility for converting *encoded*
+        user-recommendation sets into DataFrame format for subsequent post-processing
+        and analysis. It is also intended to support item-item 'recommendations' too
+        (hence use of 'mode', and 'targets').
 
         Parameters
         ----------
-        users
-        items
-        user_col
-        item_cols
-        transform
+        targets: list
+            A list of encoded targets (e.g. users).
+        items: list
+            A list, where each element is a list of encoded items mapped to a given
+            user (i.e. the user at {i} corresponds to the set of items at {i} in this
+            list.
+        mode: str
+            The mode to use when creating the output frame. Either 'users' or 'items'.
+            In the former case, 'targets' will be treated as users, in the latter, as
+            items.
+        target_col: str
+            The name of the output column associated with decoded targets.
+        item_col_fmt: str
+            The format of the field names associated with items.
+        transform: callable, optional
+            An optional callable object to be used to transform encodings. If not
+            provided, the `inverse_transform` method will be used. This can be
+            overridden to postprocess decoded items (e.g. to map to SKUs or descriptive
+            names).
 
         Returns
         -------
+        output: DataFrame
+            A DataFrame containing _decoded_ users and items associated with them.
+
+        Notes
+        -----
+        * The item list should correspond to items associated with each of the
+          users in the input list. For example, this could be one or more items
+          recommended to that users.
 
         """
 
-        if len(users) != len(items):
+        if len(targets) != len(items):
             raise ValueError(
-                f"The total number of users ('{len(users)}') does not match the total "
+                f"The total number of users ('{len(targets)}') does not match the total "
                 f"number of item recommendation rows ('{len(items)}')."
             )
 
         # create column headers.
         n = len(items[0])
         transform = transform or self.inverse_transform
-        columns = [user_col, *(item_cols.format(i) for i in range(n))]
+        columns = [target_col, *(item_col_fmt.format(i) for i in range(n))]
 
         # inverse-transform user/item arrays.
-        users = transform(users=users)["users"]
+        if mode == "users":
+            targets = transform(users=targets)["users"]
+        else:
+            targets = transform(items=targets)["items"]
+
         items = [transform(items=items[i])["items"] for i in range(len(items))]
 
         # stack users and items.
-        data = np.c_[np.asarray(users), np.asarray(items)]
+        data = np.c_[np.asarray(targets), np.asarray(items)]
 
         return DataFrame(data=data, columns=columns)
 
     def _fit_feature_mapping(
         self, x: List[str], encodings: Dict[str, int], aux_encodings: Dict[str, int]
     ) -> Dict[str, int]:
+        """Generate feature encodings for a given decoded list of features 'x'."""
+
         encodings = self._fit_mapping(x, encodings, offset=len(aux_encodings),)
         encodings.update(aux_encodings)
         return encodings
@@ -275,6 +316,8 @@ class DatasetEncoder:
     def _fit_mapping(
         self, x: List[str], encodings: Dict[str, int], offset: int = 0
     ) -> Dict[str, int]:
+        """Generate encodings for a given decoded list 'x'."""
+
         for e in x:
             encodings.setdefault(e, len(encodings) + offset + self._offset)
         return encodings

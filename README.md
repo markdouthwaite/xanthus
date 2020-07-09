@@ -5,30 +5,52 @@
 <img alt="Code Style" src="https://img.shields.io/badge/code%20style-black-000000.svg">
 </p>
 
-You'll need Python 3.6 or greater to use Xanthus.
+# Xanthus: Neural Recommendation Models in Python
 
-## Todo
+[**Quickstart**](#quickstart)
+| [**Transformations**](#transformations)
+| [**Install guide**](#installation)
+| [**Reference docs**]()
 
-1. Implement Keras-based 'model wrapper'.
-    a. For GMF
-    b. For MLP
-    c. For NMF
-2. Implement Implicit-based 'model wrapper' for benchmarking.
-3. Implement a PopRank model with the same API as 'model wrapper'.
-4. Run benchmark tests to corroborate paper/s.
-    a. For GMF
-    b. For MLP
-    c. For NMF
-    d. For PopRank
-    e. For BPR (Implicit)
-    f. For ALS (Implicit)
-5. Include the benchmarks as a script & notebook. Run on MovieLens and one other dataset.
-    a. Add colab notebook.
-7. Create `xanthus-service` template with:
-    a. A model server built on FastAPI.
-    b. An app for visualizing recommendations.
-    c. An example deployment for Kubernetes.
-8. Write docs:
-    0. Recommendations
-    a. Getting started
-    b. Deploying to GCP
+## What is Xanthus?
+
+Xanthus is a package that provides the tools and model architectures necessary to 
+utilise the techniques outlined in He et al's work on Neural Collaborative Filtering in 
+your own projects. Over time, you'll find work from other research finding it's way in
+here. The aim of this package is to make state-of-the-art research into neural 
+recommenders accessible and deployment ready!. Sound good? Great, here goes.
+
+## Quickstart
+
+Want to get straight into the code? Here's a [Colab notebook]() just for you.
+
+You can also find some examples of how to use Xanthus with some sample datasets in this
+repo. These include:
+
+* [A minimal example using the Movielens (100k) dataset.]()
+* [An example using the meta-data features of Xanthus on the Movielens (100k) dataset.]()
+
+## Installation
+
+Xanthus is a pure Python package, and you'll need Python 3.6 or greater to use Xanthus.
+
+To install, simply run:
+
+```bash
+pip install xanthus
+```
+
+That's it, you're good to go. Well, except for one thing...
+
+The package makes extensive use of [Tensorflow 2.0]() and the [Keras]() API. If
+you want to make use of the GPU acceleration provided by Tensorflow, you'll need to 
+follow the [Tensorflow team's guide]() for setting that up.
+
+## Getting started
+
+### Data preparation
+
+### Model setup
+
+### Model training
+

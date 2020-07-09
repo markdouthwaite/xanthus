@@ -1,14 +1,12 @@
-FROM python:3.6.8
+FROM python:3.7.0
 
-RUN apt-get update -y
-RUN apt-get install gcc musl-dev
+RUN pip install --no-cache fire black implicit==0.4.0 scikit-learn scipy tensorflow
+RUN pip install --no-cache pytest pandas
 
-COPY . ./app
-WORKDIR app
+COPY . /src
+WORKDIR src
 
-RUN pip install -r requirements.txt
-
-RUN python setup.py build_ext --inplace
-RUN python setup.py install
+RUN useradd xanthus
+USER xanthus
 
 CMD ["pytest", "tests"]

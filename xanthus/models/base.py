@@ -233,14 +233,18 @@ class NeuralRecommenderModel(RecommenderModel):
 
         recommended = []
 
-        items = items if items is not None else dataset.all_items
         users = users if users is not None else dataset.users
+
+        if items is None:
+            all_items = dataset.all_items
+            items = (all_items for _ in users)
 
         if self._n_meta > 0:
             items = (dataset.iter_item(e, n_dim=self._n_meta + 1) for e in items)
             users = dataset.iter_user(users, n_dim=self._n_meta + 1)
 
         for (user, target_items) in zip(users, items):
+            # this _list_ unpacks the metadata.
             target_items = np.asarray(list(target_items))
 
             if len(target_items.shape) == 1:

@@ -8,25 +8,33 @@
 [**Quickstart**](#quickstart)
 | [**Transformations**](#transformations)
 | [**Install guide**](#installation)
+| [**Experimental Results**](#experimental-results)
 | [**Reference docs**]()
 
 ## What is Xanthus?
 
 Xanthus is a package that provides the tools and model architectures necessary to 
-utilise the techniques outlined in He et al's work on Neural Collaborative Filtering in 
+utilise the techniques outlined in [He et al's work]() on Neural Collaborative Filtering in 
 your own projects. Over time, you'll find work from other research finding it's way in
 here. The aim of this package is to make state-of-the-art research into neural 
-recommenders accessible and deployment ready!. Sound good? Great, here goes.
+recommenders accessible and ultimately ready for deployment. You might find that it's 
+not quite there yet on that latter point, but it'll get there eventually.
+
+Sound good? Great, here goes.
 
 ## Quickstart
 
-Want to get straight into the code? Here's a [Colab notebook]() just for you.
+So you want to get straight into the code? Here's a [Colab notebook]() just for you.
 
-You can also find some examples of how to use Xanthus with some sample datasets in this
-repo. These include:
+You can also find some examples of how to use Xanthus with sample datasets in this
+repo's docs. These include:
 
 * [A minimal example using the Movielens (100k) dataset.]()
 * [An example using the meta-data features of Xanthus on the Movielens (100k) dataset.]()
+
+If you're interested in seeing the contents of this package benchmarked against the 
+non-neural recommendation packages, you're in luck. Here's some [benchmarking results]() 
+for you to peruse at your leisure.
 
 ## Installation
 
@@ -52,3 +60,4 @@ follow the [Tensorflow team's guide]() for setting that up.
 
 ### Model training
 
+## Experimental results

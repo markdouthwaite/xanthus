@@ -1,11 +1,9 @@
-<h1 align="center">Xanthus</h1>
+<h1 align="center">Xanthus: Neural Recommendation Models in Python</h1>
 
 <p align="center">
 <a href="https://github.com/markdouthwaite/xanthus/actions"><img alt="Build: Unknown" src="https://github.com/markdouthwaite/xanthus/workflows/Build/badge.svg"></a>
 <img alt="Code Style" src="https://img.shields.io/badge/code%20style-black-000000.svg">
 </p>
-
-# Xanthus: Neural Recommendation Models in Python
 
 [**Quickstart**](#quickstart)
 | [**Transformations**](#transformations)

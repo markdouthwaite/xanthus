@@ -50,7 +50,8 @@ That's it, you're good to go. Well, except for one thing...
 
 The package makes extensive use of [Tensorflow 2.0]() and the [Keras]() API. If
 you want to make use of the GPU acceleration provided by Tensorflow, you'll need to 
-follow the [Tensorflow team's guide]() for setting that up.
+follow the [Tensorflow team's guide]() for setting that up. If you don't need GPUs
+right now, then great, you _really_ are all set.
 
 ## Getting started
 

@@ -6,8 +6,8 @@
 </p>
 
 [**Quickstart**](#quickstart)
-| [**Transformations**](#transformations)
 | [**Install guide**](#installation)
+| [**Walkthrough**](#walkthrough)
 | [**Experimental Results**](#experimental-results)
 | [**Reference docs**]()
 
@@ -53,7 +53,7 @@ you want to make use of the GPU acceleration provided by Tensorflow, you'll need
 follow the [Tensorflow team's guide]() for setting that up. If you don't need GPUs
 right now, then great, you _really_ are all set.
 
-## Getting started
+## Walkthrough
 
 ### Data preparation
 

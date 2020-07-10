@@ -17,7 +17,6 @@ from tensorflow.keras.losses import BinaryCrossentropy, Loss
 from sklearn.model_selection import train_test_split
 
 from xanthus.datasets import Dataset
-from xanthus.evaluate import he_sampling, score, metrics
 
 
 Metric = Callable[[List[int], List[int], Optional[Any]], float]
@@ -129,7 +128,6 @@ class NeuralRecommenderModel(RecommenderModel):
     def fit(
         self,
         dataset: Dataset,
-        test_dataset: Optional[Dataset] = None,
         **kwargs: Optional[Any],
     ) -> "NeuralRecommenderModel":
         """
@@ -152,6 +150,7 @@ class NeuralRecommenderModel(RecommenderModel):
         """
 
         n_dim = self._n_meta + 1
+
         if self.model is None:
             self.model = self._build_model(
                 dataset, n_user_dim=n_dim, n_item_dim=n_dim, **self._config
@@ -159,10 +158,6 @@ class NeuralRecommenderModel(RecommenderModel):
             self.model.compile(optimizer=self._optimizer, loss=self._loss)
 
         epochs, fit_params = self._unpack_fit_params()
-
-        if test_dataset is not None:
-            users, items = he_sampling(test_dataset, dataset)
-            _, test_items, _ = test_dataset.to_components(shuffle=False)
 
         for i in range(epochs):
             user_x, item_x, y = dataset.to_components(
@@ -182,14 +177,6 @@ class NeuralRecommenderModel(RecommenderModel):
                 validation_data=([vux, vix], vy),
                 **kwargs,
             )
-
-            if test_dataset is not None:
-                recommended = self.predict(test_dataset, users=users, items=items, n=10)
-                print(
-                    "t-nDCG",
-                    score(metrics.truncated_ndcg, test_items, recommended).mean(),
-                )
-                print("HR@k", score(metrics.hit_ratio, test_items, recommended).mean())
 
         return self
 
@@ -229,6 +216,10 @@ class NeuralRecommenderModel(RecommenderModel):
             list of 'users' was provided, this will be ordered by this list. If 'users'
             are not provided, it will be ordered by 'dataset.all_users'.
 
+        # Todo:
+        # * This needs an overhaul. Some of that will involve re-working the
+        #   dataset generators, but this feels v. clunky & extraordinarily slow.
+
         """
 
         recommended = []
@@ -250,10 +241,11 @@ class NeuralRecommenderModel(RecommenderModel):
             if len(target_items.shape) == 1:
                 target_items = target_items.reshape(-1, 1)
 
-            x = [np.asarray([user.tolist()] * len(target_items)), target_items]
+            x = [np.tile(user, len(target_items)), target_items]
 
             h = self.model(x).numpy().flatten()
             ranked = self._rank(h, n, encodings=target_items[:, 0], excluded=excluded)
+
             recommended.append(ranked[:n])
 
         return recommended

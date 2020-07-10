@@ -10,6 +10,7 @@ from collections import defaultdict
 from numpy import ndarray
 from pandas import DataFrame
 from scipy.sparse import coo_matrix, csr_matrix
+from sklearn.utils import shuffle as _shuffle
 
 import numpy as np
 from .encoder import DatasetEncoder
@@ -245,11 +246,7 @@ class Dataset:
 
         # optionally shuffle the users, items and ratings.
         if shuffle:
-            mask = np.arange(users.shape[0])
-            np.random.shuffle(mask)
-            users = users[mask]
-            items = items[mask]
-            ratings = ratings[mask]
+            users, items, ratings = _shuffle(users, items, ratings)
 
         ratings.reshape(-1, 1)
 
@@ -301,7 +298,6 @@ class Dataset:
             ids = np.c_[ids, np.zeros((len(ids), n_dim - 1), dtype=int)]
             yield from (_ for _ in ids)
         else:
-            ids = np.c_[ids, np.zeros((len(ids), n_dim - 1), dtype=int)]
             yield from (_ for _ in ids.reshape(-1, 1))
 
     @staticmethod

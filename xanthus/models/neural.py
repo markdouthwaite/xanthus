@@ -53,6 +53,10 @@ class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
         self._layers = layers
         self._l2_reg = l2_reg
 
+    @property
+    def method(self):
+        return "mlp"
+
     def _build_model(
         self,
         dataset: Dataset,
@@ -163,6 +167,10 @@ class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
         self._layers = layers
         self._l2_reg = l2_reg
 
+    @property
+    def method(self):
+        return "neumf"
+
     def _build_model(
         self,
         dataset: Dataset,
@@ -257,6 +265,10 @@ class GeneralizedMatrixFactorizationModel(base.NeuralRecommenderModel):
     [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
 
     """
+
+    @property
+    def method(self):
+        return "gmf"
 
     def _build_model(
         self,

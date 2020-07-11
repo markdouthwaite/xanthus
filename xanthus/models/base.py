@@ -259,6 +259,11 @@ class NeuralRecommenderModel(RecommenderModel):
         fit_params = {k: v for k, v in self._fit_params.items() if k != "epochs"}
         return epochs, fit_params
 
+    @property
+    @abstractmethod
+    def method(self):
+        """Get the name of the architecture associated with this model"""
+
     @staticmethod
     def _rank(
         w: ndarray,

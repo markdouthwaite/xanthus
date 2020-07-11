@@ -126,9 +126,7 @@ class NeuralRecommenderModel(RecommenderModel):
         self._fit_params = fit_params
 
     def fit(
-        self,
-        dataset: Dataset,
-        **kwargs: Optional[Any],
+        self, dataset: Dataset, **kwargs: Optional[Any],
     ) -> "NeuralRecommenderModel":
         """
         Fit the model to a provided Dataset.
@@ -241,7 +239,7 @@ class NeuralRecommenderModel(RecommenderModel):
             if len(target_items.shape) == 1:
                 target_items = target_items.reshape(-1, 1)
 
-            x = [np.tile(user, len(target_items)), target_items]
+            x = [np.tile(user, (len(target_items), 1)), target_items]
 
             h = self.model(x).numpy().flatten()
             ranked = self._rank(h, n, encodings=target_items[:, 0], excluded=excluded)

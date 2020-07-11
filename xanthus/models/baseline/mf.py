@@ -44,6 +44,7 @@ class MatrixFactorizationModel:
 
         self._model = self._methods[method](**kwargs)
         self._mat = None
+        self.method = method
 
     def fit(self, dataset: Dataset) -> "MatrixFactorizationModel":
         """

@@ -199,7 +199,7 @@ def split(
 
 def he_sampling(
     a: Dataset, b: Dataset, n_samples: int = 100
-) -> Tuple[ndarray, List[ndarray]]:
+) -> Tuple[ndarray, ndarray]:
     """
     Sample a dataset 'a' with 'n' negative samples given interactions in dataset 'a'
     and 'b'.

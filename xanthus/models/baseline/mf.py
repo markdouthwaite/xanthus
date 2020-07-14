@@ -44,7 +44,7 @@ class MatrixFactorizationModel:
 
         self._model = self._methods[method](**kwargs)
         self._mat = None
-        self.method = method
+        self._method = method
 
     def fit(self, dataset: Dataset) -> "MatrixFactorizationModel":
         """
@@ -129,3 +129,6 @@ class MatrixFactorizationModel:
                 recommended.append([_[0] for _ in user_recs])
 
         return recommended
+
+    def __repr__(self):
+        return f"MatrixFactorizationModel(method={self._method})"

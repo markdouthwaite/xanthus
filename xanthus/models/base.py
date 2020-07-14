@@ -181,10 +181,10 @@ class NeuralRecommenderModel(RecommenderModel):
     def predict(
         self,
         dataset: Optional[Dataset] = None,
-        users: Optional[List[int]] = None,
-        items: Optional[List[int]] = None,
+        users: Optional[ndarray] = None,
+        items: Optional[ndarray] = None,
         n: int = 3,
-        excluded: Optional[List[int]] = None,
+        excluded: Optional[ndarray] = None,
     ) -> List[List[int]]:
         """
         Generate predictions (recommendations) from the model. For each provided user,
@@ -259,11 +259,6 @@ class NeuralRecommenderModel(RecommenderModel):
         fit_params = {k: v for k, v in self._fit_params.items() if k != "epochs"}
         return epochs, fit_params
 
-    @property
-    @abstractmethod
-    def method(self):
-        """Get the name of the architecture associated with this model"""
-
     @staticmethod
     def _rank(
         w: ndarray,
@@ -301,3 +296,6 @@ class NeuralRecommenderModel(RecommenderModel):
             ranked = ranked[~np.isin(ranked, excluded)]
 
         return ranked[:n]
+
+    def __repr__(self):
+        return f"{type(self).__name__}()"

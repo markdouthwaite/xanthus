@@ -36,15 +36,16 @@ def _run_trials(
             for model in models:
                 m = model(**config)
                 m.fit(train)
-                recommended = m.predict(
-                    test, users=sampled_users, items=sampled_items
-                )
+                recommended = m.predict(test, users=sampled_users, items=sampled_items)
                 ndcg = score(metrics.truncated_ndcg, held_out_items, recommended).mean()
                 hit_ratio = score(metrics.hit_ratio, held_out_items, recommended).mean()
-                result = dict(
-                    name=model.method, trial=i, ndcg=ndcg, hit_ratio=hit_ratio,
-                )
-                result.update(config)
+
+                result = dict(name=m, trial=i, ndcg=ndcg, hit_ratio=hit_ratio,)
+                for key, value in config.items():
+                    if isinstance(value, dict):
+                        result.update(value)
+                    else:
+                        result[key] = value
                 results.append(result)
 
     return results
@@ -61,8 +62,8 @@ def _dump_results(results, path):
 
 def ncf(
     input_path: str = "data/movielens-100k/ratings.csv",
-    output_path: str = "data/benchmarking/ncf.csv",
-    n_trials: int = 3,
+    output_path: str = "data/benchmarking/ncf2.csv",
+    n_trials: int = 1,
     policy: str = "leave_one_out",
     **kwargs: Optional[Any]
 ):
@@ -74,11 +75,16 @@ def ncf(
     _, test_items, _ = test_dataset.to_components(shuffle=False)
 
     neural_models = [
-        neural.GeneralizedMatrixFactorizationModel
+        neural.GeneralizedMatrixFactorizationModel,
+        neural.MultiLayerPerceptronModel,
     ]
 
     neural_configs = [
-        {"n_factors": 8, "fit_params": {"epochs": 1, "batch_size": 256}},
+        {
+            "n_factors": 8,
+            "negative_samples": 1,
+            "fit_params": {"epochs": 25, "batch_size": 256},
+        },
     ]
 
     users, items = he_sampling(test_dataset, train_dataset)
@@ -100,7 +106,7 @@ def ncf(
 def baselines(
     input_path: str = "data/movielens-100k/ratings.csv",
     output_path: str = "data/benchmarking/baselines.csv",
-    n_trials: int = 3,
+    n_trials: int = 1,
     policy: str = "leave_one_out",
     **kwargs: Optional[Any]
 ):

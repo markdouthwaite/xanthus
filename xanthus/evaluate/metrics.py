@@ -27,9 +27,9 @@ def _parfn(
 
 
 def score(
-    fn: Callable[[List[int], List[int], Optional[Any]], float],
-    actual: List[List[int]],
-    predicted: List[List[int]],
+    fn: Callable[[ndarray, ndarray, Optional[Any]], float],
+    actual: List[ndarray],
+    predicted: List[ndarray],
     n_cpu: int = -1,
     **kwargs: Optional[Any],
 ) -> ndarray:
@@ -85,7 +85,7 @@ def score(
     return asarray(output)
 
 
-def coverage_at_k(actual: List[int], predicted: List[List[int]], k: int = 10) -> float:
+def coverage_at_k(actual: ndarray, predicted: List[ndarray], k: int = 10) -> float:
     """
     Compute the coverage at k (c@k) for a given set of documents (actual) given all
     predictions.
@@ -113,7 +113,7 @@ def coverage_at_k(actual: List[int], predicted: List[List[int]], k: int = 10) ->
     return n / len(actual)
 
 
-def precision_at_k(actual: List[int], predicted: List[int], k: int = 10) -> float:
+def precision_at_k(actual: ndarray, predicted: ndarray, k: int = 10) -> float:
     """
     Compute the precision at k (p@k) for a given set of documents.
 
@@ -152,7 +152,7 @@ def precision_at_k(actual: List[int], predicted: List[int], k: int = 10) -> floa
 
 
 def normalized_discounted_cumulative_gain(
-    actual: List[int], predicted: List[int], k: int = 10,
+    actual: ndarray, predicted: ndarray, k: int = 10,
 ) -> float:
     """
     Compute the nDCG for a set of documents assuming binary relevance scores (i.e.
@@ -218,7 +218,7 @@ def normalized_discounted_cumulative_gain(
     return dcg / idcg
 
 
-def hit_ratio(actual: List[int], predicted: List[int], *_: Optional[Any]) -> float:
+def hit_ratio(actual: ndarray, predicted: ndarray, *_: Optional[Any]) -> float:
     """
     Compute the hit ratio (determine if a single element exists in predicted).
 
@@ -247,7 +247,7 @@ def hit_ratio(actual: List[int], predicted: List[int], *_: Optional[Any]) -> flo
         return 0.0
 
 
-def truncated_ndcg(actual: List[int], predicted: List[int], *_: Optional[Any]) -> float:
+def truncated_ndcg(actual: ndarray, predicted: ndarray, *_: Optional[Any]) -> float:
     """
     A special case of nDCG specifically to check if a single element exists in the
     predicted set, and to compute the nDCG for this item only (i.e. for a single

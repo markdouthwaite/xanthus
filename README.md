@@ -12,12 +12,7 @@
 
 ## What is Xanthus?
 
-Xanthus is a package that provides the tools and model architectures necessary to 
-utilise the techniques outlined in [He et al's work](https://dl.acm.org/doi/10.1145/3038912.3052569) on Neural Collaborative Filtering in 
-your own projects. Over time, you'll find work from other research finding it's way in
-here. The aim of this package is to make state-of-the-art research into neural 
-recommenders accessible and ultimately ready for deployment. You might find that it's 
-not quite there yet on that latter point, but it'll get there eventually.
+Xanthus is a package that was started as personal project to translate an academic ML paper into a 'production ready' software package. Itprovides the tools and model architectures necessary to utilise the techniques outlined in [He et al's work](https://dl.acm.org/doi/10.1145/3038912.3052569) on Neural Collaborative Filtering in your own projects. Over time, you'll find work from other research finding it's way in here. The aim of this package is to make state-of-the-art research into neural recommenders accessible and ultimately ready for deployment. You might find that it's not quite there yet on that latter point, but sit tight, it will be.
 
 Sound good? Great, here goes.
 

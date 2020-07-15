@@ -17,8 +17,8 @@ setup(
     author_email="mark@douthwaite.io",
     url="https://github.com/markdouthwaite/xanthus",
     license="MIT",
-    install_requires=["tensorflow", "pandas", "numpy", "h5py"],
-    extras_require={"tests": ["pytest", "pandas", "requests", "markdown", "black"],},
+    install_requires=["tensorflow", "pandas", "numpy", "h5py", "scipy", "scikit-learn", "requests", "implicit"],
+    extras_require={"tests": ["pytest", "pandas", "requests", "markdown", "black", "tensorflow"],},
     classifiers=[
         # 'Development Status :: 5 - Production/Stable',
         "Intended Audience :: Developers",

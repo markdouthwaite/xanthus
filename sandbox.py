@@ -38,7 +38,7 @@ users, items = he_sampling(test_ds, train_ds, n_samples=200)
 
 recommended = model.predict(test_ds, users=users, items=items, n=10)
 
-print("t-nDCG", score(metrics.ndcg, test_items, recommended).mean())
+print("t-nDCG", score(metrics.truncated_ndcg, test_items, recommended).mean())
 print("HR@k", score(metrics.precision_at_k, test_items, recommended).mean())
 
 # results

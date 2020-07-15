@@ -165,12 +165,11 @@ class NeuralRecommenderModel(RecommenderModel):
             tux, vux, tix, vix, ty, vy = train_test_split(
                 user_x, item_x, y, test_size=0.1
             )
-
+            print(f"Epoch {i+1}/{epochs}")
             self.model.fit(
                 [tux, tix],
                 ty,
-                epochs=epochs,
-                initial_epoch=i,
+                epochs=1,
                 **fit_params,
                 validation_data=([vux, vix], vy),
                 **kwargs,

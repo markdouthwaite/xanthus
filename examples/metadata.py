@@ -35,7 +35,7 @@ model = neural.GeneralizedMatrixFactorizationModel(
     fit_params=dict(epochs=1, batch_size=256), n_factors=8, negative_samples=4, n_meta=2
 )
 
-model.fit(train_dataset, callbacks=[tensorboard, early_stop])
+model.fit(train_dataset)
 
 users, items = he_sampling(test_dataset, train_dataset)
 

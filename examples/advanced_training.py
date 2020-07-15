@@ -12,7 +12,7 @@ from tensorflow.keras import callbacks
 from xanthus.models import neural
 from xanthus.evaluate import he_sampling, score, metrics
 from xanthus.utils import create_datasets
-
+from xanthus.models import GeneralizedMatrixFactorizationModel
 np.random.seed(42)
 
 # setup your Tensorboard callback. This will write logs to the `/logs` directory.
@@ -46,7 +46,7 @@ users, items = he_sampling(test_dataset, train_dataset)
 _, test_items, _ = test_dataset.to_components(shuffle=False)
 
 model = neural.GeneralizedMatrixFactorizationModel(
-    fit_params=dict(epochs=50, batch_size=256),
+    fit_params=dict(epochs=10, batch_size=256),
     n_factors=8,
     negative_samples=4,
 )

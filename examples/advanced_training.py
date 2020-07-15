@@ -49,7 +49,6 @@ model = neural.GeneralizedMatrixFactorizationModel(
     fit_params=dict(epochs=50, batch_size=256),
     n_factors=8,
     negative_samples=4,
-    n_meta=2,
 )
 
 # make sure to pass your 'callbacks' arguments in here as a list!

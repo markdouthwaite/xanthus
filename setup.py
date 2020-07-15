@@ -9,7 +9,7 @@ of He et al., built on Keras, with a few recommendation system utilities to boot
 """
 
 setup(
-    name="Xanthus",
+    name="xanthus",
     version=__version__,
     description="Neural Collaborative Filtering in Python",
     long_description=long_description,

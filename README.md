@@ -7,9 +7,7 @@
 
 [**Quickstart**](#quickstart)
 | [**Install guide**](#installation)
-| [**Walkthrough**](#walkthrough)
-| [**Experimental Results**](#experimental-results)
-| [**Reference docs**]()
+| [**Known issues**](#known-issues)
 
 ## What is Xanthus?
 
@@ -62,3 +60,5 @@ right now, then great, you _really_ are all set.
 ### Model training
 
 ## Experimental results
+
+## Known issues

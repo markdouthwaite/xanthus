@@ -76,7 +76,7 @@ class MatrixFactorizationModel:
         users: Optional[List[int]] = None,
         items: Optional[List[int]] = None,
         n: int = 3,
-        **kwargs: Optional[Any]
+        **kwargs: Optional[Any],
     ) -> List[List[int]]:
         """
         Generate predictions (recommendations) from the model. For each provided user,

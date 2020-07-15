@@ -169,7 +169,7 @@ class NeuralRecommenderModel(RecommenderModel):
             self.model.fit(
                 [tux, tix],
                 ty,
-                epochs=i + 1,
+                epochs=epochs,
                 initial_epoch=i,
                 **fit_params,
                 validation_data=([vux, vix], vy),

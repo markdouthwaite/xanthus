@@ -372,7 +372,27 @@ model.fit(train_ds)
     Epoch 3/3
     1075/1075 [==============================] - 2s 2ms/step - loss: 0.3087 - val_loss: 0.3057
     Epoch 4/4
-     565/1075 [==============>...............] - ETA: 0s - loss: 0.2908
+    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2892 - val_loss: 0.2919
+    Epoch 5/5
+    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2753 - val_loss: 0.2737
+    Epoch 6/6
+    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2568 - val_loss: 0.2583
+    Epoch 7/7
+    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2385 - val_loss: 0.2387
+    Epoch 8/8
+    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2179 - val_loss: 0.2195
+    Epoch 9/9
+    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2000 - val_loss: 0.1994
+    Epoch 10/10
+    1075/1075 [==============================] - 2s 2ms/step - loss: 0.1824 - val_loss: 0.1822
+
+
+
+
+
+    GeneralizedMatrixFactorizationModel()
+
+
 
 Remember that (as with any ML model) you'll want to tweak your hyperparameters (e.g. `n_factor`, regularization, etc.) to optimize your model's performance on your given dataset. The example model here is just a quick un-tuned model to show you the ropes.
 
@@ -407,6 +427,10 @@ print("t-nDCG", score(metrics.truncated_ndcg, test_items, recommended).mean())
 print("HR@k", score(metrics.precision_at_k, test_items, recommended).mean())
 ```
 
+    t-nDCG 0.4727691131482932
+    HR@k 0.6973684210526315
+
+
 Looking okay. Good work. Going into detail on how the metrics presented here work is beyond the scope of this notebook. If you're interested in what is going on here, make sure to check out the docs (docstrings) in the Xanthus package itself.
 
 ## The fun bit
@@ -425,6 +449,267 @@ Recall that the first 'column' in the `items` array corresponds to positive the 
 recommended_df = encoder.to_df(users, recommended)
 recommended_df.head(25)
 ```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>item_0</th>
+      <th>item_1</th>
+      <th>item_2</th>
+      <th>item_3</th>
+      <th>item_4</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>There's Something About Mary (1998)</td>
+      <td>Crow, The (1994)</td>
+      <td>Star Trek II: The Wrath of Khan (1982)</td>
+      <td>Casablanca (1942)</td>
+      <td>Heathers (1989)</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>Lord of the Rings: The Return of the King, The...</td>
+      <td>Logan (2017)</td>
+      <td>Avatar (2009)</td>
+      <td>Sherlock Holmes (2009)</td>
+      <td>Truman Show, The (1998)</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>Blade Runner (1982)</td>
+      <td>River Wild, The (1994)</td>
+      <td>Quiz Show (1994)</td>
+      <td>First Knight (1995)</td>
+      <td>Ref, The (1994)</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>Boot, Das (Boat, The) (1981)</td>
+      <td>Sling Blade (1996)</td>
+      <td>Terminator, The (1984)</td>
+      <td>Rain Man (1988)</td>
+      <td>Little Big Man (1970)</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>Much Ado About Nothing (1993)</td>
+      <td>Star Trek: First Contact (1996)</td>
+      <td>Batman (1989)</td>
+      <td>One Flew Over the Cuckoo's Nest (1975)</td>
+      <td>Sling Blade (1996)</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>6</td>
+      <td>Crimson Tide (1995)</td>
+      <td>Searching for Bobby Fischer (1993)</td>
+      <td>James and the Giant Peach (1996)</td>
+      <td>Ronin (1998)</td>
+      <td>G.I. Jane (1997)</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>7</td>
+      <td>Unbreakable (2000)</td>
+      <td>Love Actually (2003)</td>
+      <td>Illusionist, The (2006)</td>
+      <td>Training Day (2001)</td>
+      <td>Hero (Ying xiong) (2002)</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>8</td>
+      <td>Sixth Sense, The (1999)</td>
+      <td>Ghost (1990)</td>
+      <td>Pocahontas (1995)</td>
+      <td>Thomas Crown Affair, The (1999)</td>
+      <td>Air Force One (1997)</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>9</td>
+      <td>Shrek (2001)</td>
+      <td>Indiana Jones and the Last Crusade (1989)</td>
+      <td>Ocean's Eleven (2001)</td>
+      <td>South Park: Bigger, Longer and Uncut (1999)</td>
+      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>10</td>
+      <td>Lion King, The (1994)</td>
+      <td>Zombieland (2009)</td>
+      <td>Rush Hour 2 (2001)</td>
+      <td>300 (2007)</td>
+      <td>Horrible Bosses 2 (2014)</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>11</td>
+      <td>X-Men (2000)</td>
+      <td>Piano, The (1993)</td>
+      <td>American History X (1998)</td>
+      <td>Waterworld (1995)</td>
+      <td>Snatch (2000)</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>12</td>
+      <td>Beauty and the Beast (1991)</td>
+      <td>Birdcage, The (1996)</td>
+      <td>Perfect Storm, The (2000)</td>
+      <td>Braveheart (1995)</td>
+      <td>Courage Under Fire (1996)</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>13</td>
+      <td>Die Hard (1988)</td>
+      <td>Lion King, The (1994)</td>
+      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
+      <td>Jumanji (1995)</td>
+      <td>Casino (1995)</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>14</td>
+      <td>Terminator 2: Judgment Day (1991)</td>
+      <td>Godfather, The (1972)</td>
+      <td>Babe (1995)</td>
+      <td>First Knight (1995)</td>
+      <td>Die Hard (1988)</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>15</td>
+      <td>Good Will Hunting (1997)</td>
+      <td>Truman Show, The (1998)</td>
+      <td>Kiss Kiss Bang Bang (2005)</td>
+      <td>Zodiac (2007)</td>
+      <td>Heat (1995)</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>16</td>
+      <td>Indiana Jones and the Last Crusade (1989)</td>
+      <td>Saving Private Ryan (1998)</td>
+      <td>Gladiator (2000)</td>
+      <td>Birds, The (1963)</td>
+      <td>Pianist, The (2002)</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>17</td>
+      <td>Spider-Man (2002)</td>
+      <td>Fifth Element, The (1997)</td>
+      <td>Master and Commander: The Far Side of the Worl...</td>
+      <td>Field of Dreams (1989)</td>
+      <td>Team America: World Police (2004)</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>18</td>
+      <td>Princess Mononoke (Mononoke-hime) (1997)</td>
+      <td>28 Days Later (2002)</td>
+      <td>Adjustment Bureau, The (2011)</td>
+      <td>Stardust (2007)</td>
+      <td>Ghostbusters (a.k.a. Ghost Busters) (1984)</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>19</td>
+      <td>GoldenEye (1995)</td>
+      <td>Lethal Weapon (1987)</td>
+      <td>Cool Hand Luke (1967)</td>
+      <td>Crimson Tide (1995)</td>
+      <td>Analyze This (1999)</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>20</td>
+      <td>Shakespeare in Love (1998)</td>
+      <td>Crash (2004)</td>
+      <td>Walk the Line (2005)</td>
+      <td>March of the Penguins (Marche de l'empereur, L...</td>
+      <td>Cars (2006)</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>21</td>
+      <td>Wreck-It Ralph (2012)</td>
+      <td>Atlantis: The Lost Empire (2001)</td>
+      <td>Harry Potter and the Order of the Phoenix (2007)</td>
+      <td>True Lies (1994)</td>
+      <td>Happy Gilmore (1996)</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>22</td>
+      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
+      <td>E.T. the Extra-Terrestrial (1982)</td>
+      <td>WALL·E (2008)</td>
+      <td>Harry Potter and the Sorcerer's Stone (a.k.a. ...</td>
+      <td>Blow (2001)</td>
+    </tr>
+    <tr>
+      <th>22</th>
+      <td>23</td>
+      <td>Insider, The (1999)</td>
+      <td>Streetcar Named Desire, A (1951)</td>
+      <td>Wizard of Oz, The (1939)</td>
+      <td>Midnight Cowboy (1969)</td>
+      <td>Jurassic Park (1993)</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>24</td>
+      <td>Requiem for a Dream (2000)</td>
+      <td>Star Wars: Episode III - Revenge of the Sith (...</td>
+      <td>Blood Diamond (2006)</td>
+      <td>Howl's Moving Castle (Hauru no ugoku shiro) (2...</td>
+      <td>Corpse Bride (2005)</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>25</td>
+      <td>Ex Machina (2015)</td>
+      <td>Usual Suspects, The (1995)</td>
+      <td>The Lego Movie (2014)</td>
+      <td>Clear and Present Danger (1994)</td>
+      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
 
 ## That's a wrap
 

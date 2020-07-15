@@ -7,12 +7,13 @@
 
 [**Quickstart**](#quickstart)
 | [**Install guide**](#installation)
+| [**Contributing**](docs/contributing.md)
 | [**Known issues**](#known-issues)
 
 ## What is Xanthus?
 
 Xanthus is a package that provides the tools and model architectures necessary to 
-utilise the techniques outlined in [He et al's work]() on Neural Collaborative Filtering in 
+utilise the techniques outlined in [He et al's work](https://dl.acm.org/doi/10.1145/3038912.3052569) on Neural Collaborative Filtering in 
 your own projects. Over time, you'll find work from other research finding it's way in
 here. The aim of this package is to make state-of-the-art research into neural 
 recommenders accessible and ultimately ready for deployment. You might find that it's 
@@ -22,17 +23,16 @@ Sound good? Great, here goes.
 
 ## Quickstart
 
-So you want to get straight into the code? Here's a [Colab notebook]() just for you.
+Want to get straight into the code? Here's an [introductory notebook](docs/getting-started.ipynb) just for you.
 
 You can also find some examples of how to use Xanthus with sample datasets in this
 repo's docs. These include:
 
-* [A minimal example using the Movielens (100k) dataset.]()
-* [An example using the meta-data features of Xanthus on the Movielens (100k) dataset.]()
+* [A minimal example using the Movielens (100k) dataset.](examples/basics.py)
+* [An example using the meta-data features of Xanthus on the Movielens (100k) dataset.](examples/metadata.py)
 
-If you're interested in seeing the contents of this package benchmarked against the 
-non-neural recommendation packages, you're in luck. Here's some [benchmarking results]() 
-for you to peruse at your leisure.
+If you're interested in seeing the results of benchmarking of Xanthus' models against 'classic' 
+collaborative filtering models, you'll have to sit tight. But rest assured: benchmarks are on their way.
 
 ## Installation
 
@@ -51,14 +51,12 @@ you want to make use of the GPU acceleration provided by Tensorflow, you'll need
 follow the [Tensorflow team's guide]() for setting that up. If you don't need GPUs
 right now, then great, you _really_ are all set.
 
-## Walkthrough
+## Known performance issues
 
-### Data preparation
+This is a pre-release. There's likely to be a few performance issues. Here's a couple that are being worked on:
 
-### Model setup
+* The negative sampling `xanthus.datasets.utils.negative_sampling` approach is expensive and can therefore be slow for large datasets.
+* The inference method (`NeuralRecommenderModel.predict`) is currently pretty slow. An alternative is on its way.
+* The training method (`NeuralRecommenderModel.fit`) is a little crude, again, improvements are inbound.
 
-### Model training
-
-## Experimental results
-
-## Known issues
+You will likely find other performance issues on very large datasets. Hold tight for some optimizations, it'll get there.

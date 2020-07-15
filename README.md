@@ -8,7 +8,7 @@
 [**Quickstart**](#quickstart)
 | [**Install guide**](#installation)
 | [**Contributing**](docs/contributing.md)
-| [**Known issues**](#known-issues)
+| [**Known issues**](#known-performance-issues)
 
 ## What is Xanthus?
 

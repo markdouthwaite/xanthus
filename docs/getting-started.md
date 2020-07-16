@@ -1,12 +1,18 @@
+---
+description: >-
+  This page gives you a walkthrough of how to start using Xanthus to generate
+  recommendations.
+---
+
 # Getting started with Xanthus
 
 ## What is Xanthus?
 
-Xanthus is a Neural Recommender package written in Python. It started life as a personal project to take an academic ML paper and translate it into a 'production-ready' software package and to replicate the results of the paper along the way. It uses Tensorflow 2.0 under the hood, and makes extensive use of the Keras API. If you're interested, the original authors of [the paper that inspired this project]() provided code for their experiments, and this proved valuable when starting this project. 
+Xanthus is a Neural Recommender package written in Python. It started life as a personal project to take an academic ML paper and translate it into a 'production-ready' software package and to replicate the results of the paper along the way. It uses Tensorflow 2.0 under the hood, and makes extensive use of the Keras API. If you're interested, the original authors of [the paper that inspired this project](getting-started.md) provided code for their experiments, and this proved valuable when starting this project.
 
-However, while it is great that they provided their code, the repository isn't maintained, the code uses an old versions of Keras (and Theano!), it can be a little hard for beginners to get to grips with, and it's very much tailored to produce the results in their paper. All fair enough, they wrote a great paper and published their workings. Admirable stuff. Xanthus aims to make it super easy to get started with the work of building a neural recommenation system, and to scale the techniques in the original paper (hopefully) gracefully with you as the complexity of your applications increase.
+However, while it is great that they provided their code, the repository isn't maintained, the code uses an old versions of Keras \(and Theano!\), it can be a little hard for beginners to get to grips with, and it's very much tailored to produce the results in their paper. All fair enough, they wrote a great paper and published their workings. Admirable stuff. Xanthus aims to make it super easy to get started with the work of building a neural recommenation system, and to scale the techniques in the original paper \(hopefully\) gracefully with you as the complexity of your applications increase.
 
-This notebook will walk you through a basic example of using Xanthus to predict previously unseen movies to a set of users using the classic 'Movielens' recommender dataset. The [original paper]() tests the architectures in this paper as part of an _implicit_ recommendation problem. You'll find out more about what this means later in the notebook. In the meantime, it is worth remembering that the examples in this notebook make the same assumption.
+This notebook will walk you through a basic example of using Xanthus to predict previously unseen movies to a set of users using the classic 'Movielens' recommender dataset. The [original paper](getting-started.md) tests the architectures in this paper as part of an _implicit_ recommendation problem. You'll find out more about what this means later in the notebook. In the meantime, it is worth remembering that the examples in this notebook make the same assumption.
 
 Ready for some code?
 
@@ -14,15 +20,13 @@ Ready for some code?
 
 Ah, the beginning of a brand new ML problem. You'll need to download the dataset first. You can use the Xanthus `download.movielens` utility to download, unzip and save your Movielens data.
 
-
 ```python
 from xanthus.datasets import download
 
 download.movielens(version="latest-small", output_dir="data")
 ```
 
-Time to crack out Pandas and load some CSVs. You know the drill. 
-
+Time to crack out Pandas and load some CSVs. You know the drill.
 
 ```python
 import pandas as pd
@@ -33,154 +37,39 @@ movies = pd.read_csv("data/ml-latest-small/movies.csv")
 
 Let's take a look at the data we've loaded. Here's the movies dataset:
 
-
 ```python
 movies.head()
 ```
 
+  
 
 
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>movieId</th>
-      <th>title</th>
-      <th>genres</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>1</td>
-      <td>Toy Story (1995)</td>
-      <td>Adventure|Animation|Children|Comedy|Fantasy</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2</td>
-      <td>Jumanji (1995)</td>
-      <td>Adventure|Children|Fantasy</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>3</td>
-      <td>Grumpier Old Men (1995)</td>
-      <td>Comedy|Romance</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>4</td>
-      <td>Waiting to Exhale (1995)</td>
-      <td>Comedy|Drama|Romance</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>5</td>
-      <td>Father of the Bride Part II (1995)</td>
-      <td>Comedy</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
+|  | movieId | title | genres |
+| :--- | :--- | :--- | :--- |
+| 0 | 1 | Toy Story \(1995\) | Adventure\|Animation\|Children\|Comedy\|Fantasy |
+| 1 | 2 | Jumanji \(1995\) | Adventure\|Children\|Fantasy |
+| 2 | 3 | Grumpier Old Men \(1995\) | Comedy\|Romance |
+| 3 | 4 | Waiting to Exhale \(1995\) | Comedy\|Drama\|Romance |
+| 4 | 5 | Father of the Bride Part II \(1995\) | Comedy |
 
 As you can see, you've got the unique identifier for your movies, the title of the movie in human-readable format, and then the column `genres` that has a string containing a set of associated genres for the given movie. Straightforward enough. And hey, that `genres` column might come in handy at some point...
 
 On to the `ratings` frame. Here's what is in there:
 
-
 ```python
 ratings.head()
+
 ```
 
+|  | userId | movieId | rating | timestamp |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | 1 | 1 | 4.0 | 964982703 |
+| 1 | 1 | 3 | 4.0 | 964981247 |
+| 2 | 1 | 6 | 4.0 | 964982224 |
+| 3 | 1 | 47 | 5.0 | 964983815 |
+| 4 | 1 | 50 | 5.0 | 964982931 |
 
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>userId</th>
-      <th>movieId</th>
-      <th>rating</th>
-      <th>timestamp</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>1</td>
-      <td>1</td>
-      <td>4.0</td>
-      <td>964982703</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>3</td>
-      <td>4.0</td>
-      <td>964981247</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>1</td>
-      <td>6</td>
-      <td>4.0</td>
-      <td>964982224</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>1</td>
-      <td>47</td>
-      <td>5.0</td>
-      <td>964983815</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>1</td>
-      <td>50</td>
-      <td>5.0</td>
-      <td>964982931</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-
-First up, you've got a `userId` corresponding to the unique user identifier, and you've got the `movieId` corresponding to the unique movie identifier (this maps onto the `movieId` column in the `movies` frame, above). You've also got a `rating` field. This is associated with the user-assigned rating for that movie. Finally, you have the `timestamp` -- the date at which the user rated the movie. For future reference, you can convert from this timestamp to a 'human readable' date with:
-
+First up, you've got a `userId` corresponding to the unique user identifier, and you've got the `movieId` corresponding to the unique movie identifier \(this maps onto the `movieId` column in the `movies` frame, above\). You've also got a `rating` field. This is associated with the user-assigned rating for that movie. Finally, you have the `timestamp` -- the date at which the user rated the movie. For future reference, you can convert from this timestamp to a 'human readable' date with:
 
 ```python
 from datetime import datetime
@@ -188,12 +77,9 @@ from datetime import datetime
 datetime.fromtimestamp(ratings.iloc[0]["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
 ```
 
-
-
-
-    '2000-07-30 19:45:03'
-
-
+```text
+'2000-07-30 19:45:03'
+```
 
 Thats your freebie for the day. Onto getting the data ready for training your recommender model.
 
@@ -201,70 +87,25 @@ Thats your freebie for the day. Onto getting the data ready for training your re
 
 Xanthus provides a few utilities for getting your recommender up and running. One of the more ubiquitous utilities is the `Dataset` class, and its related `DatasetEncoder` class. At the time of writing, the `Dataset` class assumes your 'ratings' data is in the format `user`, `item`, `rating`. You can rename the sample data to be in this format with:
 
-
 ```python
 ratings = ratings.rename(columns={"userId": "user", "movieId": "item"})
 ```
 
-Next, you might find it helpful to re-map the movie IDs (now under the `item` column) to be the `titles` in the `movies` frame. This'll make it easier for you to see what the recommender is recommending! Don't do this for big datasets though -- it can get very expensive very quickly! Anyway, remap the `item` column with:
-
+Next, you might find it helpful to re-map the movie IDs \(now under the `item` column\) to be the `titles` in the `movies` frame. This'll make it easier for you to see what the recommender is recommending! Don't do this for big datasets though -- it can get very expensive very quickly! Anyway, remap the `item` column with:
 
 ```python
 title_mapping = dict(zip(movies["movieId"], movies["title"]))
 ratings.loc[:, "item"] = ratings["item"].apply(lambda _: title_mapping[_])
 ratings.head(2)
+
 ```
 
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>user</th>
-      <th>item</th>
-      <th>rating</th>
-      <th>timestamp</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>1</td>
-      <td>Toy Story (1995)</td>
-      <td>4.0</td>
-      <td>964982703</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>Grumpier Old Men (1995)</td>
-      <td>4.0</td>
-      <td>964981247</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
+|  | user | item | rating | timestamp |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | 1 | Toy Story \(1995\) | 4.0 | 964982703 |
+| 1 | 1 | Grumpier Old Men \(1995\) | 4.0 | 964981247 |
 
 A little more meaningful, eh? For this example, you are going to be looking at _implicit_ recommendations, so should also remove clearly negative rating pairs from the dataset. You can do this with:
-
 
 ```python
 ratings = ratings[ratings["rating"] > 3.0]
@@ -274,10 +115,9 @@ ratings = ratings[ratings["rating"] > 3.0]
 
 As with any ML model, it is important to keep a held-out sample of your dataset to evaluate your model's performance. This is naturally important for recommenders too. However, recommenders differ slightly in that we are often interested in the recommender's ability to _rank_ candidate items in order to surface the most relevant content to a user. Ultimately, the essence of recommendation problems is search, and getting relevant items in the top `n` search results is generally the name of the game -- absolute accuracy can often be a secondary consideration.
 
-One common way of evaluating the performance of a recommender model is therefore to create a test set by sampling `n` items from each user's `m` interactions (e.g. movie ratings), keeping `m-n` interactions in the training set and putting the 'left out' `n` samples in the test set. The thought process then goes that when evaluating a model on this test set, you should see the model rank the 'held' out samples more highly in the results (i.e. it has started to learn a user's preferences). 
+One common way of evaluating the performance of a recommender model is therefore to create a test set by sampling `n` items from each user's `m` interactions \(e.g. movie ratings\), keeping `m-n` interactions in the training set and putting the 'left out' `n` samples in the test set. The thought process then goes that when evaluating a model on this test set, you should see the model rank the 'held' out samples more highly in the results \(i.e. it has started to learn a user's preferences\).
 
 The 'leave one out' protocol is a specific case of this approach where `n=1`. Concretely, when creating a test set using 'leave one out', you withold a single interaction from each user and put these in your test set. You then place all other interactions in your training set. To get you going, Xanthus provides a utility function called -- funnily enough -- `leave_one_out` under the `evaluate` subpackage. You can import it and use it as follows:
-
 
 ```python
 from xanthus.evaluate import leave_one_out
@@ -285,7 +125,7 @@ from xanthus.evaluate import leave_one_out
 train_df, test_df = leave_one_out(ratings, shuffle=True, deduplicate=True)
 ```
 
-You'll notice that there's a couple of things going on here. Firstly, the function returns the input interactions frame (in this case `ratings`) and splits it into the two datasets as expected. Fair enough. We then have two keyword arguments `shuffle` and `deduplicate`. The argument `shuffle` will -- you guessed it -- shuffle your dataset before sampling interactions for your test set. This is set to `True` by default, so it is shown here for the purpose of being explicit. The second argument is `deduplicate`. This does what you might expect too -- it strips any cases where a user interacts with a specific item more than once (i.e. a given user-item pair appears more than once).
+You'll notice that there's a couple of things going on here. Firstly, the function returns the input interactions frame \(in this case `ratings`\) and splits it into the two datasets as expected. Fair enough. We then have two keyword arguments `shuffle` and `deduplicate`. The argument `shuffle` will -- you guessed it -- shuffle your dataset before sampling interactions for your test set. This is set to `True` by default, so it is shown here for the purpose of being explicit. The second argument is `deduplicate`. This does what you might expect too -- it strips any cases where a user interacts with a specific item more than once \(i.e. a given user-item pair appears more than once\).
 
 As discussed above, the `leave_one_out` function is really a specific version of a more general 'leave `n` out' approach to splitting a dataset. There's also other ways you might want to split datasets for recommendation problems. For many of those circumstances, Xanthus provides a more generic `split` function. This was inspired by Azure's [_Recommender Split_](https://docs.microsoft.com/en-us/azure/machine-learning/studio-module-reference/split-data-using-recommender-split#:~:text=The%20Recommender%20Split%20option%20is,user%2Ditem%2Drating%20triples) method in Azure ML Studio. There are a few important tweaks in the Xanthus implementation, so make sure to check out that functions documentation if you're interested.
 
@@ -293,10 +133,9 @@ Anyway, time to build some datasets.
 
 ## Introducing the `Dataset`
 
-Like other ML problems, recommendation problems typically need to create encoded representations of a domain in order to be passed into a model for training and evaluation. However, there's a few aspects of recommendation problems that can make this problem particularly fiddly. To help you on your way, Xanthus provides a few utilities, including the `Dataset` class and the `DatasetEncoder` class. These structures are designed to take care of the fiddliness for you. They'll build your input vectors (including with metadata, if you provide it -- more on that later) and sparse matrices as required. You shouldn't need to touch a thing. 
+Like other ML problems, recommendation problems typically need to create encoded representations of a domain in order to be passed into a model for training and evaluation. However, there's a few aspects of recommendation problems that can make this problem particularly fiddly. To help you on your way, Xanthus provides a few utilities, including the `Dataset` class and the `DatasetEncoder` class. These structures are designed to take care of the fiddliness for you. They'll build your input vectors \(including with metadata, if you provide it -- more on that later\) and sparse matrices as required. You shouldn't need to touch a thing.
 
 Here's how it works. First, your 'train' and 'test' datasets are going to need to share the same encodings, right? Otherwise they'll disagree on whether `Batman Forever (1995)` shares the same encoding across the datasets, and that would be a terrible shame. To create your `DatasetEncoder` you can do this:
-
 
 ```python
 from xanthus.datasets import DatasetEncoder
@@ -305,29 +144,17 @@ encoder = DatasetEncoder()
 encoder.fit(ratings["user"], ratings["item"])
 ```
 
-
-
-
-    <xanthus.datasets.encoder.DatasetEncoder at 0x128778da0>
-
-
-
 This encoder will store all of the unique encodings of every user and item in the `ratings` set. Notice that you're passing in the `ratings` set here, as opposed to either train or test. This makes doubly sure you're creating encodings for every user-item pair in the dataset. To check this has worked, you can call the `transform` method on the encoder like this:
-
 
 ```python
 encoder.transform(items=["Batman Forever (1995)"])
 ```
 
-
-
-
-    {'items': array([1694], dtype=int32)}
-
-
+```text
+{'items': array([1694], dtype=int32)}
+```
 
 The naming conventions on the `DatasetEncoder` are deliberately reminicent of the methods on Scikit-Learn encoders, just to help you along with using them. Now you've got your encoder, you can create your `Dataset` objects:
-
 
 ```python
 from xanthus.datasets import Dataset, utils
@@ -336,14 +163,13 @@ train_ds = Dataset.from_df(train_df, normalize=utils.as_implicit, encoder=encode
 test_ds = Dataset.from_df(test_df, normalize=utils.as_implicit, encoder=encoder)
 ```
 
-Let's unpack what's going on here. The `Dataset` class provides the `from_df` class method for quickly constructing a `Dataset` from a 'raw' Pandas `DataFrame`. You want to create a train and test dataset, hence creating two separate `Dataset` objects using this method. Next, you can see that the `encoder` keyword argument is passed in to the `from_df` method. This ensures that each `Dataset` maintains a reference to the _same_ `DatasetEncoder` to ensure consistency when used. The final argument here is `normalize`. This expects a callable object (e.g. a function) that scales the `rating` column (if provided). In the case of this example, the normalization is simply to treat the ratings as an implicit recommendation problem (i.e. all zero or one). The `utils.as_implicit` function simply sets all ratings to one. Simple enough, eh?
+Let's unpack what's going on here. The `Dataset` class provides the `from_df` class method for quickly constructing a `Dataset` from a 'raw' Pandas `DataFrame`. You want to create a train and test dataset, hence creating two separate `Dataset` objects using this method. Next, you can see that the `encoder` keyword argument is passed in to the `from_df` method. This ensures that each `Dataset` maintains a reference to the _same_ `DatasetEncoder` to ensure consistency when used. The final argument here is `normalize`. This expects a callable object \(e.g. a function\) that scales the `rating` column \(if provided\). In the case of this example, the normalization is simply to treat the ratings as an implicit recommendation problem \(i.e. all zero or one\). The `utils.as_implicit` function simply sets all ratings to one. Simple enough, eh?
 
 And that is it for preparing your datasets for modelling, at least for now. Time for some Neural Networks.
 
 ## Getting neural
 
-With your datasets ready, you can build and fit your model. In the example, the `GeneralizedMatrixFactorizationModel` (or `GMFModel`) is used. If you're not sure what a GMF model is, be sure to check out the original paper, and the GMF class itself in the Xanthus docs. Anyway, here's how you set it up: 
-
+With your datasets ready, you can build and fit your model. In the example, the `GeneralizedMatrixFactorizationModel` \(or `GMFModel`\) is used. If you're not sure what a GMF model is, be sure to check out the original paper, and the GMF class itself in the Xanthus docs. Anyway, here's how you set it up:
 
 ```python
 from xanthus.models import GeneralizedMatrixFactorizationModel as GMFModel
@@ -355,51 +181,49 @@ model = GMFModel(
 )
 ```
 
-What is going on here, you ask? Good question. First, you import the `GeneralizedMatrixFactorizationModel` as any other object. You then define `fit_params` -- fit parameters -- to define the training loop used by the Keras optimizer. All Xanthus neural recommender models inherit from the base `NeuralRecommenderModel` class. By default, this class (and therefore all child classes) utilize the `Adam` optimizer. You can configure this to use any optimizer you wish though!
+What is going on here, you ask? Good question. First, you import the `GeneralizedMatrixFactorizationModel` as any other object. You then define `fit_params` -- fit parameters -- to define the training loop used by the Keras optimizer. All Xanthus neural recommender models inherit from the base `NeuralRecommenderModel` class. By default, this class \(and therefore all child classes\) utilize the `Adam` optimizer. You can configure this to use any optimizer you wish though!
 
-After the `fit_param`, the `GeneralizedMatrixFactorizationModel` is initialized. There are two further keyword arguments here, `n_factors` and `negative_samples`. In the former case, `n_factors` refers to the size of the latent factor space encoded by the model. The larger the number, the more expressive the model -- to a point. In the latter case, `negative_samples` configures the sampling pointwise sampling policy outlined by [He et al](). In practice, the model will be trained by sampling 'negative' instances for each positive instance in the set. In other words: for each user-item pair with a positive rating (in this case one -- remember `utils.as_implicit`?), a given number of `negative_samples` will be drawn that the user _did not_ interact with. This is resampled in each epoch. This helps the model learn more general patterns, and to avoid overfitting. Empirically, it makes quite a difference over other sampling approaches. If you're interested, you should look at the [pairwise loss used in Bayesian Personalized Ranking (BPR)]().
+After the `fit_param`, the `GeneralizedMatrixFactorizationModel` is initialized. There are two further keyword arguments here, `n_factors` and `negative_samples`. In the former case, `n_factors` refers to the size of the latent factor space encoded by the model. The larger the number, the more expressive the model -- to a point. In the latter case, `negative_samples` configures the sampling pointwise sampling policy outlined by [He et al](getting-started.md). In practice, the model will be trained by sampling 'negative' instances for each positive instance in the set. In other words: for each user-item pair with a positive rating \(in this case one -- remember `utils.as_implicit`?\), a given number of `negative_samples` will be drawn that the user _did not_ interact with. This is resampled in each epoch. This helps the model learn more general patterns, and to avoid overfitting. Empirically, it makes quite a difference over other sampling approaches. If you're interested, you should look at the [pairwise loss used in Bayesian Personalized Ranking \(BPR\)](getting-started.md).
 
 You're now ready to fit your model. You can do this with:
-
 
 ```python
 model.fit(train_ds)
 ```
 
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.4895 - val_loss: 0.3513
-    Epoch 2/2
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.3343 - val_loss: 0.3284
-    Epoch 3/3
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.3087 - val_loss: 0.3057
-    Epoch 4/4
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2892 - val_loss: 0.2919
-    Epoch 5/5
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2753 - val_loss: 0.2737
-    Epoch 6/6
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2568 - val_loss: 0.2583
-    Epoch 7/7
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2385 - val_loss: 0.2387
-    Epoch 8/8
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2179 - val_loss: 0.2195
-    Epoch 9/9
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2000 - val_loss: 0.1994
-    Epoch 10/10
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.1824 - val_loss: 0.1822
+```text
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.4895 - val_loss: 0.3513
+Epoch 2/2
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.3343 - val_loss: 0.3284
+Epoch 3/3
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.3087 - val_loss: 0.3057
+Epoch 4/4
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.2892 - val_loss: 0.2919
+Epoch 5/5
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.2753 - val_loss: 0.2737
+Epoch 6/6
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.2568 - val_loss: 0.2583
+Epoch 7/7
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.2385 - val_loss: 0.2387
+Epoch 8/8
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.2179 - val_loss: 0.2195
+Epoch 9/9
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.2000 - val_loss: 0.1994
+Epoch 10/10
+1075/1075 [==============================] - 2s 2ms/step - loss: 0.1824 - val_loss: 0.1822
 
 
 
 
 
-    GeneralizedMatrixFactorizationModel()
+GeneralizedMatrixFactorizationModel()
+```
 
-
-
-Remember that (as with any ML model) you'll want to tweak your hyperparameters (e.g. `n_factor`, regularization, etc.) to optimize your model's performance on your given dataset. The example model here is just a quick un-tuned model to show you the ropes.
+Remember that \(as with any ML model\) you'll want to tweak your hyperparameters \(e.g. `n_factor`, regularization, etc.\) to optimize your model's performance on your given dataset. The example model here is just a quick un-tuned model to show you the ropes.
 
 ## Evaluating the model
 
-Now to diagnose how well your model has done. The evaluation protocol here is set up in accordance with the methodology outlined in [the original paper](). To get yourself ready to generate some scores, you'll need to run:
-
+Now to diagnose how well your model has done. The evaluation protocol here is set up in accordance with the methodology outlined in [the original paper](getting-started.md). To get yourself ready to generate some scores, you'll need to run:
 
 ```python
 from xanthus.evaluate import he_sampling
@@ -408,17 +232,15 @@ _, test_items, _ = test_ds.to_components(shuffle=False)
 users, items = he_sampling(test_ds, train_ds, n_samples=200)
 ```
 
-So, what's going on here? First, you're importing the `he_sampling` function. This implements a sampling approach used be [He et al.]() in their work. The idea is that you evaluate your model on the user-item pairs in your test set, and for each 'true' user-item pair, you sample `n_samples` negative instances for that user (i.e. items they haven't interacted with). In the case of the `he_sampling` function, this produces and array of shape `n_users, n_samples + 1`. Concretely, for each user, you'll get an array where the first element is a positive sample (something they _did_ interact with) and `n_samples` negative samples (things they _did not_ interact with). 
+So, what's going on here? First, you're importing the `he_sampling` function. This implements a sampling approach used be [He et al.](getting-started.md) in their work. The idea is that you evaluate your model on the user-item pairs in your test set, and for each 'true' user-item pair, you sample `n_samples` negative instances for that user \(i.e. items they haven't interacted with\). In the case of the `he_sampling` function, this produces and array of shape `n_users, n_samples + 1`. Concretely, for each user, you'll get an array where the first element is a positive sample \(something they _did_ interact with\) and `n_samples` negative samples \(things they _did not_ interact with\).
 
 The rationale here is that by having the model rank these `n_samples + 1` items for each user, you'll be able to determine whether your model is learning an effective ranking function -- the positive sample _should_ appear higher in the recommendations than the negative results if the model is doing it's job. Here's how you can rank these sampled items:
-
 
 ```python
 recommended = model.predict(test_ds, users=users, items=items, n=10)
 ```
 
 And finally for the evaluation, you can use the `score` function and the provided `metrics` in the Xanthus `evaluate` subpackage. Here's how you can use them:
-
 
 ```python
 from xanthus.evaluate import score, metrics
@@ -427,16 +249,16 @@ print("t-nDCG", score(metrics.truncated_ndcg, test_items, recommended).mean())
 print("HR@k", score(metrics.precision_at_k, test_items, recommended).mean())
 ```
 
-    t-nDCG 0.4727691131482932
-    HR@k 0.6973684210526315
+```text
+t-nDCG 0.4727691131482932
+HR@k 0.6973684210526315
+```
 
-
-Looking okay. Good work. Going into detail on how the metrics presented here work is beyond the scope of this notebook. If you're interested in what is going on here, make sure to check out the docs (docstrings) in the Xanthus package itself.
+Looking okay. Good work. Going into detail on how the metrics presented here work is beyond the scope of this notebook. If you're interested in what is going on here, make sure to check out the docs \(docstrings\) in the Xanthus package itself.
 
 ## The fun bit
 
 After all of that, it is time to see what you've won. Exciting times. You can generate recommendations for your users _from unseen items_ by using the following:
-
 
 ```python
 recommended = model.predict(users=users, items=items[:, 1:], n=5)
@@ -444,273 +266,40 @@ recommended = model.predict(users=users, items=items[:, 1:], n=5)
 
 Recall that the first 'column' in the `items` array corresponds to positive the positive sample for a user. You can skip that here. So now you have a great big array of integers. Not as exciting as you'd hoped? Fair enough. Xanthus provides a utility to convert the outputs of your model predictions into a more readable Pandas `DataFrame`. Specifically, your `DatasetEncoder` has the handy `to_df` method for just this job. Give it a set of _encoded_ users and a list of _encoded_ items for each user, and it'll build you a nice `DataFrame`. Here's how:
 
-
 ```python
 recommended_df = encoder.to_df(users, recommended)
 recommended_df.head(25)
 ```
 
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>id</th>
-      <th>item_0</th>
-      <th>item_1</th>
-      <th>item_2</th>
-      <th>item_3</th>
-      <th>item_4</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>1</td>
-      <td>There's Something About Mary (1998)</td>
-      <td>Crow, The (1994)</td>
-      <td>Star Trek II: The Wrath of Khan (1982)</td>
-      <td>Casablanca (1942)</td>
-      <td>Heathers (1989)</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2</td>
-      <td>Lord of the Rings: The Return of the King, The...</td>
-      <td>Logan (2017)</td>
-      <td>Avatar (2009)</td>
-      <td>Sherlock Holmes (2009)</td>
-      <td>Truman Show, The (1998)</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>3</td>
-      <td>Blade Runner (1982)</td>
-      <td>River Wild, The (1994)</td>
-      <td>Quiz Show (1994)</td>
-      <td>First Knight (1995)</td>
-      <td>Ref, The (1994)</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>4</td>
-      <td>Boot, Das (Boat, The) (1981)</td>
-      <td>Sling Blade (1996)</td>
-      <td>Terminator, The (1984)</td>
-      <td>Rain Man (1988)</td>
-      <td>Little Big Man (1970)</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>5</td>
-      <td>Much Ado About Nothing (1993)</td>
-      <td>Star Trek: First Contact (1996)</td>
-      <td>Batman (1989)</td>
-      <td>One Flew Over the Cuckoo's Nest (1975)</td>
-      <td>Sling Blade (1996)</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>6</td>
-      <td>Crimson Tide (1995)</td>
-      <td>Searching for Bobby Fischer (1993)</td>
-      <td>James and the Giant Peach (1996)</td>
-      <td>Ronin (1998)</td>
-      <td>G.I. Jane (1997)</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>7</td>
-      <td>Unbreakable (2000)</td>
-      <td>Love Actually (2003)</td>
-      <td>Illusionist, The (2006)</td>
-      <td>Training Day (2001)</td>
-      <td>Hero (Ying xiong) (2002)</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>8</td>
-      <td>Sixth Sense, The (1999)</td>
-      <td>Ghost (1990)</td>
-      <td>Pocahontas (1995)</td>
-      <td>Thomas Crown Affair, The (1999)</td>
-      <td>Air Force One (1997)</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>9</td>
-      <td>Shrek (2001)</td>
-      <td>Indiana Jones and the Last Crusade (1989)</td>
-      <td>Ocean's Eleven (2001)</td>
-      <td>South Park: Bigger, Longer and Uncut (1999)</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>10</td>
-      <td>Lion King, The (1994)</td>
-      <td>Zombieland (2009)</td>
-      <td>Rush Hour 2 (2001)</td>
-      <td>300 (2007)</td>
-      <td>Horrible Bosses 2 (2014)</td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>11</td>
-      <td>X-Men (2000)</td>
-      <td>Piano, The (1993)</td>
-      <td>American History X (1998)</td>
-      <td>Waterworld (1995)</td>
-      <td>Snatch (2000)</td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>12</td>
-      <td>Beauty and the Beast (1991)</td>
-      <td>Birdcage, The (1996)</td>
-      <td>Perfect Storm, The (2000)</td>
-      <td>Braveheart (1995)</td>
-      <td>Courage Under Fire (1996)</td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>13</td>
-      <td>Die Hard (1988)</td>
-      <td>Lion King, The (1994)</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
-      <td>Jumanji (1995)</td>
-      <td>Casino (1995)</td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>14</td>
-      <td>Terminator 2: Judgment Day (1991)</td>
-      <td>Godfather, The (1972)</td>
-      <td>Babe (1995)</td>
-      <td>First Knight (1995)</td>
-      <td>Die Hard (1988)</td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>15</td>
-      <td>Good Will Hunting (1997)</td>
-      <td>Truman Show, The (1998)</td>
-      <td>Kiss Kiss Bang Bang (2005)</td>
-      <td>Zodiac (2007)</td>
-      <td>Heat (1995)</td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>16</td>
-      <td>Indiana Jones and the Last Crusade (1989)</td>
-      <td>Saving Private Ryan (1998)</td>
-      <td>Gladiator (2000)</td>
-      <td>Birds, The (1963)</td>
-      <td>Pianist, The (2002)</td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>17</td>
-      <td>Spider-Man (2002)</td>
-      <td>Fifth Element, The (1997)</td>
-      <td>Master and Commander: The Far Side of the Worl...</td>
-      <td>Field of Dreams (1989)</td>
-      <td>Team America: World Police (2004)</td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>18</td>
-      <td>Princess Mononoke (Mononoke-hime) (1997)</td>
-      <td>28 Days Later (2002)</td>
-      <td>Adjustment Bureau, The (2011)</td>
-      <td>Stardust (2007)</td>
-      <td>Ghostbusters (a.k.a. Ghost Busters) (1984)</td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>19</td>
-      <td>GoldenEye (1995)</td>
-      <td>Lethal Weapon (1987)</td>
-      <td>Cool Hand Luke (1967)</td>
-      <td>Crimson Tide (1995)</td>
-      <td>Analyze This (1999)</td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>20</td>
-      <td>Shakespeare in Love (1998)</td>
-      <td>Crash (2004)</td>
-      <td>Walk the Line (2005)</td>
-      <td>March of the Penguins (Marche de l'empereur, L...</td>
-      <td>Cars (2006)</td>
-    </tr>
-    <tr>
-      <th>20</th>
-      <td>21</td>
-      <td>Wreck-It Ralph (2012)</td>
-      <td>Atlantis: The Lost Empire (2001)</td>
-      <td>Harry Potter and the Order of the Phoenix (2007)</td>
-      <td>True Lies (1994)</td>
-      <td>Happy Gilmore (1996)</td>
-    </tr>
-    <tr>
-      <th>21</th>
-      <td>22</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
-      <td>E.T. the Extra-Terrestrial (1982)</td>
-      <td>WALL·E (2008)</td>
-      <td>Harry Potter and the Sorcerer's Stone (a.k.a. ...</td>
-      <td>Blow (2001)</td>
-    </tr>
-    <tr>
-      <th>22</th>
-      <td>23</td>
-      <td>Insider, The (1999)</td>
-      <td>Streetcar Named Desire, A (1951)</td>
-      <td>Wizard of Oz, The (1939)</td>
-      <td>Midnight Cowboy (1969)</td>
-      <td>Jurassic Park (1993)</td>
-    </tr>
-    <tr>
-      <th>23</th>
-      <td>24</td>
-      <td>Requiem for a Dream (2000)</td>
-      <td>Star Wars: Episode III - Revenge of the Sith (...</td>
-      <td>Blood Diamond (2006)</td>
-      <td>Howl's Moving Castle (Hauru no ugoku shiro) (2...</td>
-      <td>Corpse Bride (2005)</td>
-    </tr>
-    <tr>
-      <th>24</th>
-      <td>25</td>
-      <td>Ex Machina (2015)</td>
-      <td>Usual Suspects, The (1995)</td>
-      <td>The Lego Movie (2014)</td>
-      <td>Clear and Present Danger (1994)</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
+|  | id | item\_0 | item\_1 | item\_2 | item\_3 | item\_4 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0 | 1 | There's Something About Mary \(1998\) | Crow, The \(1994\) | Star Trek II: The Wrath of Khan \(1982\) | Casablanca \(1942\) | Heathers \(1989\) |
+| 1 | 2 | Lord of the Rings: The Return of the King, The... | Logan \(2017\) | Avatar \(2009\) | Sherlock Holmes \(2009\) | Truman Show, The \(1998\) |
+| 2 | 3 | Blade Runner \(1982\) | River Wild, The \(1994\) | Quiz Show \(1994\) | First Knight \(1995\) | Ref, The \(1994\) |
+| 3 | 4 | Boot, Das \(Boat, The\) \(1981\) | Sling Blade \(1996\) | Terminator, The \(1984\) | Rain Man \(1988\) | Little Big Man \(1970\) |
+| 4 | 5 | Much Ado About Nothing \(1993\) | Star Trek: First Contact \(1996\) | Batman \(1989\) | One Flew Over the Cuckoo's Nest \(1975\) | Sling Blade \(1996\) |
+| 5 | 6 | Crimson Tide \(1995\) | Searching for Bobby Fischer \(1993\) | James and the Giant Peach \(1996\) | Ronin \(1998\) | G.I. Jane \(1997\) |
+| 6 | 7 | Unbreakable \(2000\) | Love Actually \(2003\) | Illusionist, The \(2006\) | Training Day \(2001\) | Hero \(Ying xiong\) \(2002\) |
+| 7 | 8 | Sixth Sense, The \(1999\) | Ghost \(1990\) | Pocahontas \(1995\) | Thomas Crown Affair, The \(1999\) | Air Force One \(1997\) |
+| 8 | 9 | Shrek \(2001\) | Indiana Jones and the Last Crusade \(1989\) | Ocean's Eleven \(2001\) | South Park: Bigger, Longer and Uncut \(1999\) | Pirates of the Caribbean: The Curse of the Bla... |
+| 9 | 10 | Lion King, The \(1994\) | Zombieland \(2009\) | Rush Hour 2 \(2001\) | 300 \(2007\) | Horrible Bosses 2 \(2014\) |
+| 10 | 11 | X-Men \(2000\) | Piano, The \(1993\) | American History X \(1998\) | Waterworld \(1995\) | Snatch \(2000\) |
+| 11 | 12 | Beauty and the Beast \(1991\) | Birdcage, The \(1996\) | Perfect Storm, The \(2000\) | Braveheart \(1995\) | Courage Under Fire \(1996\) |
+| 12 | 13 | Die Hard \(1988\) | Lion King, The \(1994\) | Pirates of the Caribbean: The Curse of the Bla... | Jumanji \(1995\) | Casino \(1995\) |
+| 13 | 14 | Terminator 2: Judgment Day \(1991\) | Godfather, The \(1972\) | Babe \(1995\) | First Knight \(1995\) | Die Hard \(1988\) |
+| 14 | 15 | Good Will Hunting \(1997\) | Truman Show, The \(1998\) | Kiss Kiss Bang Bang \(2005\) | Zodiac \(2007\) | Heat \(1995\) |
+| 15 | 16 | Indiana Jones and the Last Crusade \(1989\) | Saving Private Ryan \(1998\) | Gladiator \(2000\) | Birds, The \(1963\) | Pianist, The \(2002\) |
+| 16 | 17 | Spider-Man \(2002\) | Fifth Element, The \(1997\) | Master and Commander: The Far Side of the Worl... | Field of Dreams \(1989\) | Team America: World Police \(2004\) |
+| 17 | 18 | Princess Mononoke \(Mononoke-hime\) \(1997\) | 28 Days Later \(2002\) | Adjustment Bureau, The \(2011\) | Stardust \(2007\) | Ghostbusters \(a.k.a. Ghost Busters\) \(1984\) |
+| 18 | 19 | GoldenEye \(1995\) | Lethal Weapon \(1987\) | Cool Hand Luke \(1967\) | Crimson Tide \(1995\) | Analyze This \(1999\) |
+| 19 | 20 | Shakespeare in Love \(1998\) | Crash \(2004\) | Walk the Line \(2005\) | March of the Penguins \(Marche de l'empereur, L... | Cars \(2006\) |
+| 20 | 21 | Wreck-It Ralph \(2012\) | Atlantis: The Lost Empire \(2001\) | Harry Potter and the Order of the Phoenix \(2007\) | True Lies \(1994\) | Happy Gilmore \(1996\) |
+| 21 | 22 | Pirates of the Caribbean: The Curse of the Bla... | E.T. the Extra-Terrestrial \(1982\) | WALL·E \(2008\) | Harry Potter and the Sorcerer's Stone \(a.k.a. ... | Blow \(2001\) |
+| 22 | 23 | Insider, The \(1999\) | Streetcar Named Desire, A \(1951\) | Wizard of Oz, The \(1939\) | Midnight Cowboy \(1969\) | Jurassic Park \(1993\) |
+| 23 | 24 | Requiem for a Dream \(2000\) | Star Wars: Episode III - Revenge of the Sith \(... | Blood Diamond \(2006\) | Howl's Moving Castle \(Hauru no ugoku shiro\) \(2... | Corpse Bride \(2005\) |
+| 24 | 25 | Ex Machina \(2015\) | Usual Suspects, The \(1995\) | The Lego Movie \(2014\) | Clear and Present Danger \(1994\) | Pirates of the Caribbean: The Curse of the Bla... |
 
 ## That's a wrap
 
 And that's it for this example. Be sure to raise any issues you have [on GitHub](https://github.com/markdouthwaite/xanthus), or get in touch [on Twitter](https://twitter.com/MarklDouthwaite).
+

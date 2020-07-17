@@ -23,7 +23,7 @@ Want to get straight into the code? Here's an [introductory notebook](docs/getti
 You can also find some examples of how to use Xanthus with sample datasets in this
 repo's docs. These include:
 
-* [A minimal example using the Movielens (100k) dataset.](examples/basics.py)
+* [A minimal example using the Movielens (100k) dataset.](docs/getting-started.ipynb)
 * [An example using the meta-data features of Xanthus on the Movielens (100k) dataset.](examples/metadata.py)
 
 If you're interested in seeing the results of benchmarking of Xanthus' models against 'classic' 
@@ -41,9 +41,9 @@ pip install xanthus
 
 That's it, you're good to go. Well, except for one thing...
 
-The package makes extensive use of [Tensorflow 2.0]() and the [Keras]() API. If
+The package makes extensive use of [Tensorflow 2.0](https://www.tensorflow.org/) and the [Keras](https://keras.io/) API. If
 you want to make use of the GPU acceleration provided by Tensorflow, you'll need to 
-follow the [Tensorflow team's guide]() for setting that up. If you don't need GPUs
+follow the [Tensorflow team's guide](https://www.tensorflow.org/install/gpu) for setting that up. If you don't need GPUs
 right now, then great, you _really_ are all set.
 
 ## Known performance issues

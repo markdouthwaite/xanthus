@@ -4,8 +4,10 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
-from itertools import islice
-from typing import Optional, Tuple, Iterable, Any
+from typing import Optional, Tuple, Any, NoReturn
+
+import numpy as np
+from numpy import ndarray
 
 from tensorflow.keras.layers import (
     Layer,
@@ -13,8 +15,48 @@ from tensorflow.keras.layers import (
     Flatten,
     Embedding,
 )
-from tensorflow.keras.regularizers import l2
+from tensorflow.keras.regularizers import l2, Regularizer
 from tensorflow.keras.initializers import RandomNormal, Initializer
+
+
+class InputEmbeddingBlock(Layer):
+    """An input embedding block that flattens the output."""
+
+    def __init__(
+        self,
+        n_vocab: int,
+        n_factors: int,
+        *args: Any,
+        regularizer: Optional[Regularizer] = None,
+        **kwargs: Any,
+    ) -> NoReturn:
+        """Initialize the block!"""
+
+        super().__init__(*args, **kwargs)
+        self._n_factors = n_factors
+        self._n_vocab = n_vocab
+        self._input = None
+        self._embedding = None
+        self._output = None
+        self._regularizer = regularizer
+
+    def build(self, input_shape: Tuple[int, ...]) -> NoReturn:
+        """Build the block!"""
+
+        self._embedding = Embedding(
+            input_dim=self._n_vocab,
+            output_dim=self._n_factors,
+            input_length=input_shape,
+            embeddings_initializer=RandomNormal(stddev=0.01),
+            embeddings_regularizer=self._regularizer,
+        )
+        self._output = Flatten()
+
+    def call(self, inputs: ndarray, **kwargs: Any) -> ndarray:
+        """Call the block."""
+
+        x = self._embedding(inputs)
+        return self._output(x)
 
 
 def get_embedding_block(
@@ -66,11 +108,22 @@ def get_embedding_block(
     return inputs, Flatten()(bias_embedding), factors
 
 
-def batched(i: Iterable[Any], n: int) -> Iterable[Any]:
-    """Batch an iterable 'i' into batches of 'n'."""
+def reshape_recommended(
+    users: ndarray, items: ndarray, scores: ndarray, n: int, mode: str = "array"
+) -> ndarray:
+    recommended = {k: [] for k in users[:, 0]}
 
-    g = (_ for _ in i)
-    c = list(islice(g, n))
-    while c:
-        yield c
-        c = list(islice(g, n))
+    for user, item, rating in zip(users[:, 0], items[:, 0], scores.flatten()):
+        recommended[user].append((item, rating))
+
+    if mode == "dict":
+        return recommended
+    elif mode == "array":
+        return np.asarray(
+            [
+                [e for e, _ in sorted(recommended[_], key=lambda x: -x[1])][:n]
+                for _ in recommended.keys()
+            ]
+        )
+    else:
+        raise ValueError(f"Unknown create recommended mode '{mode}'.")

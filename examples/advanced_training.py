@@ -9,10 +9,10 @@ import pandas as pd
 
 from tensorflow.keras import callbacks
 
-from xanthus.models import neural
-from xanthus.evaluate import he_sampling, score, metrics
+from xanthus.models.legacy import neural
+from xanthus.evaluate import create_rankings, score, metrics
 from xanthus.utils import create_datasets
-from xanthus.models import GeneralizedMatrixFactorizationModel
+
 np.random.seed(42)
 
 # setup your Tensorboard callback. This will write logs to the `/logs` directory.
@@ -42,7 +42,7 @@ df = df.rename(columns={"userId": "user", "movieId": "item"})
 # - at the loss of flexibility and transparency, of course.
 train_dataset, test_dataset = create_datasets(df, policy="leave_one_out")
 
-users, items = he_sampling(test_dataset, train_dataset)
+users, items = create_rankings(test_dataset, train_dataset)
 _, test_items, _ = test_dataset.to_components(shuffle=False)
 
 model = neural.GeneralizedMatrixFactorizationModel(

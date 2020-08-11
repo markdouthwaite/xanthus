@@ -8,14 +8,16 @@ import os
 import io
 import zipfile
 import warnings
-from typing import Tuple, Any, NoReturn
+from typing import Tuple, Any, NoReturn, TypeVar
 
 import requests
 import pandas as pd
-from pandas import DataFrame
 
 from .utils import fold
 from .build import build
+
+
+Dataset = TypeVar("Dataset")
 
 
 def download(
@@ -42,7 +44,7 @@ def download(
                 file.write(response.content)
 
 
-def _load_100k(path: str, policy: str, **kwargs: Any) -> Tuple[DataFrame, DataFrame]:
+def _load_100k(path: str, policy: str, **kwargs: Any) -> Tuple[Dataset, Dataset]:
     """Load the ml-latest-small dataset."""
 
     df = pd.read_csv(os.path.join(path, "ratings.csv"))
@@ -59,7 +61,7 @@ def _load_100k(path: str, policy: str, **kwargs: Any) -> Tuple[DataFrame, DataFr
     return train_ds, test_ds
 
 
-def _load_1m(path: str, policy: str, **kwargs: Any) -> Tuple[DataFrame, DataFrame]:
+def _load_1m(path: str, policy: str, **kwargs: Any) -> Tuple[Dataset, Dataset]:
     """Load the ml-1m dataset."""
 
     df = pd.read_csv(
@@ -103,7 +105,7 @@ def load(
     version: str = "ml-latest-small",
     policy: str = "leave_one_out",
     **kwargs: Any,
-) -> Tuple[DataFrame, DataFrame]:
+) -> Tuple[Dataset, Dataset]:
     """Load a chosen Movielens dataset as train and test datasets."""
 
     path = os.path.join(dirname, version)

@@ -28,7 +28,7 @@ from xanthus.evaluate import (
     score,
     ndcg,
     utils,
-    he_sampling,
+    create_rankings,
     split,
     coverage_at_k,
     precision_at_k,
@@ -121,7 +121,7 @@ def test_he_sampling_correctness(sample_dataframes):
         test, encoder=encoder, normalize=lambda _: ones_like(_)
     )
 
-    users, items = he_sampling(test_dataset, train_dataset)
+    users, items = create_rankings(test_dataset, train_dataset)
 
     a, b, _ = dataset.to_components()
     all_users, all_items = groupby(a, b)

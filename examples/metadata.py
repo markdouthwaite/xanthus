@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 
 from xanthus.datasets import utils
-from xanthus.models import neural
-from xanthus.evaluate import he_sampling, score, metrics
+from xanthus.models.legacy import neural
+from xanthus.evaluate import create_rankings, score, metrics
 from xanthus.utils import create_datasets
 
 np.random.seed(42)
@@ -37,7 +37,7 @@ model = neural.GeneralizedMatrixFactorizationModel(
 
 model.fit(train_dataset)
 
-users, items = he_sampling(test_dataset, train_dataset)
+users, items = create_rankings(test_dataset, train_dataset)
 
 recommended = model.predict(test_dataset, users=users, items=items, n=10)
 

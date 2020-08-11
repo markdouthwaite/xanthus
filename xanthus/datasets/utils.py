@@ -4,7 +4,7 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
-from typing import Optional, Union, List, Set, Iterator, Tuple, Any, Callable
+from typing import Optional, Union, List, Set, Iterator, Tuple, Any, Callable, Iterable
 from itertools import islice
 
 from pandas import DataFrame
@@ -293,6 +293,7 @@ def sample_negatives(
     if aux_matrix is not None:
         interactions += aux_matrix
 
+    # Todo: this could be a generator too -- no need to pause...
     neg_users, neg_items, neg_ratings = unpack_negative_samples(
         users, interactions, negative_samples, mode=sampling_mode
     )
@@ -438,3 +439,13 @@ def fold(
     output = DataFrame(data=pairs, columns=[key, "tag"])
 
     return output.drop_duplicates([key, "tag"])
+
+
+def batched(i: Iterable[Any], n: int) -> Iterable[Any]:
+    """Batch an iterable 'i' into batches of 'n'."""
+
+    g = (_ for _ in i)
+    c = list(islice(g, n))
+    while c:
+        yield c
+        c = list(islice(g, n))

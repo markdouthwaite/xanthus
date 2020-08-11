@@ -8,11 +8,12 @@ from typing import Optional, Any, Tuple
 
 from pandas import DataFrame
 
-from .datasets import Dataset, DatasetEncoder, utils
-from .evaluate import leave_one_out, split
+from .core import Dataset, DatasetEncoder
+from . import utils
+from ..evaluate import leave_one_out, split
 
 
-def create_datasets(
+def build(
     df: DataFrame,
     user_df: Optional[DataFrame] = None,
     item_df: Optional[DataFrame] = None,
@@ -20,7 +21,7 @@ def create_datasets(
     **kwargs: Optional[Any]
 ) -> Tuple[Dataset, Dataset]:
     """
-    Utility function for creating train and test datasets.
+    Utility function for building train and test datasets for recommender models.
 
     Parameters
     ----------

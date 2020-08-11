@@ -298,8 +298,8 @@ class DatasetEncoder:
 
         if len(targets) != len(items):
             raise ValueError(
-                f"The total number of users ('{len(targets)}') does not match the total "
-                f"number of item recommendation rows ('{len(items)}')."
+                f"The total number of users ('{len(targets)}') does not match the "
+                f"total number of item recommendation rows ('{len(items)}')."
             )
 
         # create column headers.

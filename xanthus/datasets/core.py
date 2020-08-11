@@ -6,6 +6,7 @@ Copyright (c) 2018-2020 Mark Douthwaite
 
 from typing import Optional, Any, List, Tuple, Callable, Iterator
 from collections import defaultdict
+from functools import lru_cache
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -16,7 +17,7 @@ import numpy as np
 from .encoder import DatasetEncoder
 
 
-from .utils import construct_coo_matrix, sample_negatives, SamplerCallable
+from .utils import construct_coo_matrix, sample_negatives, SamplerCallable, batched
 
 
 class Dataset:
@@ -136,6 +137,20 @@ class Dataset:
         """Get all items in the dataset (inc. those with no interactions)."""
 
         return np.arange(self.interactions.shape[1])
+
+    @property
+    def user_dim(self):
+        if self.user_meta is None:
+            return self.all_users.shape[0]
+        else:
+            return self.all_users.shape[0] + self.user_meta.shape[1]
+
+    @property
+    def item_dim(self):
+        if self.item_meta is None:
+            return self.all_items.shape[0]
+        else:
+            return self.all_items.shape[0] + self.item_meta.shape[1]
 
     @property
     def history(self) -> ndarray:
@@ -332,11 +347,14 @@ class Dataset:
         for _id, _tag in zip(_ids, tags):
             groups[_id].append(_tag)
 
-        for _id in ids:
-            group = groups[_id]
+        @lru_cache(maxsize=None)  # dangerous for large datasets?
+        def _fetch(_):
+            group = groups[_]
             padding = [0] * max(0, n_dim - len(group))
-            features = [_id, *group, *padding][:n_dim]
-            yield features
+            return np.asarray([_, *group, *padding][:n_dim])
+
+        for _id in ids:
+            yield _fetch(_id)
 
     @classmethod
     def from_df(
@@ -443,6 +461,9 @@ class Dataset:
             interactions, user_meta=user_meta, item_meta=item_meta, encoder=encoder
         )
 
+    def batched(self, *args, **kwargs):
+        return BatchedDataset(self, *args, **kwargs)
+
     def to_components(
         self, *args: Optional[Any], **kwargs: Optional[Any]
     ) -> Tuple[ndarray, ...]:
@@ -454,3 +475,85 @@ class Dataset:
         """Iterate over the dataset."""
 
         yield from self.iter()
+
+
+class BatchedDataset:
+    """
+    Iterate batches of a dataset.
+
+    This class exposes the method `flow` which provides a generator that yields batches
+    from the underlying dataset. It can reduce memory load when using large datasets
+    with user and item metadata.
+
+    """
+
+    def __init__(
+        self,
+        dataset: Dataset,
+        batch_size: int,
+        negative_samples: int = 0,
+        **kwargs: Any
+    ):
+        """
+        Initialise a batched dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            The underlying dataset.
+        batch_size: int
+            The size of the batches you'd like to use.
+        negative_samples: int
+            The total number of negative samples (for each positive sample) you wish
+            to take from the provided interactions set (and auxiliary matrix, if
+            provided).
+        kwargs: Any
+            Arguments to be passed to the `Dataset.iter` method when called.
+
+        """
+
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.negative_samples = negative_samples
+        self.kwargs = kwargs
+
+    @property
+    def n(self) -> int:
+        """Get the total number of records in the dataset."""
+        return self.dataset.interactions.data.shape[0]
+
+    @property
+    def steps(self) -> int:
+        """Get the total number of steps needed to process all batches in the set."""
+        return self.n * (1 + self.negative_samples) // self.batch_size
+
+    def flow(self) -> Iterator[Tuple[List[ndarray], ndarray]]:
+        """
+        Iterate over batches.
+
+        Note that this will loop infinitely. It is designed to allow you (and Keras)
+        to extract the batches you need for each training loop.
+        """
+        yield from self
+
+    def _iter_dataset(self) -> Iterator[Tuple[ndarray, ndarray, ndarray]]:
+        """Iterate through batches from the dataset."""
+
+        yield from (
+            tuple(map(np.asarray, zip(*_)))
+            for _ in batched(
+                self.dataset.iter(
+                    negative_samples=self.negative_samples, **self.kwargs
+                ),
+                self.batch_size,
+            )
+        )
+
+    def __iter__(self) -> Iterator[Tuple[List[ndarray], ndarray]]:
+        """
+        Iterate through batches from the dataset, packaging in a format ready for Keras.
+        """
+
+        while True:
+            yield from (([a, b], c) for (a, b, c) in (self._iter_dataset()))
+            continue

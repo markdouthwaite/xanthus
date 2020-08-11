@@ -8,10 +8,13 @@ import numpy as np
 import pandas as pd
 
 from tensorflow.keras import callbacks
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import BinaryCrossentropy
 
-from xanthus.models.legacy import neural
+from sklearn.model_selection import train_test_split
+
+from xanthus import datasets, models
 from xanthus.evaluate import create_rankings, score, metrics
-from xanthus.utils import create_datasets
 
 np.random.seed(42)
 
@@ -32,29 +35,50 @@ early_stop = callbacks.EarlyStopping(
     baseline=None,
     restore_best_weights=True,
 )
-# you can add custom callbacks too!
+# remember: you can add custom callbacks too!
 
 # and now to the old-school model training bit.
-df = pd.read_csv("../data/movielens-100k/ratings.csv")
+datasets.movielens.download("ml-latest-small")
+
+df = pd.read_csv("data/ml-latest-small/ratings.csv")
 df = df.rename(columns={"userId": "user", "movieId": "item"})
 
-# for expedience, you can use `create_datasets` to do a lot of the setup for you
+# for expedience, you can use `datasets.build` to do a lot of the setup for you
 # - at the loss of flexibility and transparency, of course.
-train_dataset, test_dataset = create_datasets(df, policy="leave_one_out")
+train_dataset, test_dataset = datasets.build(df, policy="leave_one_out")
 
-users, items = create_rankings(test_dataset, train_dataset)
-_, test_items, _ = test_dataset.to_components(shuffle=False)
+# prepare model
+model = models.GeneralizedMatrixFactorization(
+    n=train_dataset.user_dim, m=train_dataset.item_dim
+)
+model.compile(optimizer=Adam(), loss=BinaryCrossentropy())
 
-model = neural.GeneralizedMatrixFactorizationModel(
-    fit_params=dict(epochs=10, batch_size=256),
-    n_factors=8,
-    negative_samples=4,
+# get training data
+user_x, item_x, y = train_dataset.to_components(
+    negative_samples=1, aux_matrix=test_dataset.interactions
+)
+train_user_x, val_user_x, train_item_x, val_item_x, train_y, val_y = train_test_split(
+    user_x, item_x, y, test_size=0.2
 )
 
-# make sure to pass your 'callbacks' arguments in here as a list!
-model.fit(train_dataset, callbacks=[tensorboard, early_stop])
+model.fit(
+    [train_user_x, train_item_x],
+    train_y,
+    epochs=1,
+    batch_size=256,
+    validation_data=([val_user_x, val_item_x], val_y),
+    callbacks=[tensorboard, early_stop],
+)
 
-recommended = model.predict(test_dataset, users=users, items=items, n=10)
+# get evaluation data
+users, items = create_rankings(test_dataset, train_dataset, n_samples=100, unravel=True)
+_, test_items, _ = test_dataset.to_components(shuffle=False)
 
-print("t-nDCG", score(metrics.truncated_ndcg, test_items, recommended).mean())
+# generate scores and evaluate
+scores = model.predict([users, items], verbose=1)
+recommended = models.utils.reshape_recommended(
+    users.reshape(-1, 1), items.reshape(-1, 1), scores, 10, mode="array"
+)
+
+print("nDCG", score(metrics.truncated_ndcg, test_items, recommended).mean())
 print("HR@k", score(metrics.hit_ratio, test_items, recommended).mean())

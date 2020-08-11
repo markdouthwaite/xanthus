@@ -10,7 +10,7 @@ from xanthus.models.neural import (
     NeuralMatrixFactorization,
 )
 from xanthus.models.baseline import MatrixFactorization, PopRank
-
+from . import utils
 
 __all__ = [
     "MatrixFactorization",
@@ -18,4 +18,5 @@ __all__ = [
     "MultiLayerPerceptron",
     "GeneralizedMatrixFactorization",
     "NeuralMatrixFactorization",
+    "utils",
 ]

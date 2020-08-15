@@ -2,11 +2,11 @@
 
 ## What is Xanthus?
 
-Xanthus is a Neural Recommender package written in Python. It started life as a personal project to take an academic ML paper and translate it into a 'production-ready' software package and to replicate the results of the paper along the way. It uses Tensorflow 2.0 under the hood, and makes extensive use of the Keras API. If you're interested, the original authors of [the paper that inspired this project]() provided code for their experiments, and this proved valuable when starting this project. 
+Xanthus is a Neural Recommender package written in Python. It started life as a personal project to take an academic ML paper and translate it into a 'production-ready' software package and to replicate the results of the paper along the way. It uses Tensorflow 2.0 under the hood, and makes extensive use of the Keras API. If you're interested, the original authors of [the paper that inspired this project](https://dl.acm.org/doi/10.1145/3038912.3052569) provided code for their experiments, and this proved valuable when starting this project. 
 
-However, while it is great that they provided their code, the repository isn't maintained, the code uses an old versions of Keras (and Theano!), it can be a little hard for beginners to get to grips with, and it's very much tailored to produce the results in their paper. All fair enough, they wrote a great paper and published their workings. Admirable stuff. Xanthus aims to make it super easy to get started with the work of building a neural recommenation system, and to scale the techniques in the original paper (hopefully) gracefully with you as the complexity of your applications increase.
+However, while it is great that they provided their code, the repository isn't maintained, the code uses an old versions of Keras (and Theano!), it can be a little hard for beginners to get to grips with, and it's very much tailored to produce the results in their paper. All fair enough, they wrote a great paper and published their workings. Admirable stuff. Xanthus aims to make it super easy to get started with the work of building a neural recommendation system, and to scale the techniques in the original paper (hopefully) gracefully with you as the complexity of your applications increase.
 
-This notebook will walk you through a basic example of using Xanthus to predict previously unseen movies to a set of users using the classic 'Movielens' recommender dataset. The [original paper]() tests the architectures in this paper as part of an _implicit_ recommendation problem. You'll find out more about what this means later in the notebook. In the meantime, it is worth remembering that the examples in this notebook make the same assumption.
+This notebook will walk you through a basic example of using Xanthus to predict previously unseen movies to a set of users using the classic 'Movielens' recommender dataset. The [original paper](https://dl.acm.org/doi/10.1145/3038912.3052569) tests the architectures in this paper as part of an _implicit_ recommendation problem. You'll find out more about what this means later in the notebook. In the meantime, it is worth remembering that the examples in this notebook make the same assumption.
 
 Ready for some code?
 
@@ -16,9 +16,9 @@ Ah, the beginning of a brand new ML problem. You'll need to download the dataset
 
 
 ```python
-from xanthus.datasets import download
+from xanthus import datasets
 
-download.movielens(version="latest-small", output_dir="data")
+datasets.movielens.download(version="ml-latest-small", output_dir="data")
 ```
 
 Time to crack out Pandas and load some CSVs. You know the drill. 
@@ -308,7 +308,7 @@ encoder.fit(ratings["user"], ratings["item"])
 
 
 
-    <xanthus.datasets.encoder.DatasetEncoder at 0x128778da0>
+    <xanthus.datasets.encoder.DatasetEncoder at 0x122228a20>
 
 
 
@@ -342,59 +342,49 @@ And that is it for preparing your datasets for modelling, at least for now. Time
 
 ## Getting neural
 
-With your datasets ready, you can build and fit your model. In the example, the `GeneralizedMatrixFactorizationModel` (or `GMFModel`) is used. If you're not sure what a GMF model is, be sure to check out the original paper, and the GMF class itself in the Xanthus docs. Anyway, here's how you set it up: 
+With your datasets ready, you can build and fit your model. In the example, the `GeneralizedMatrixFactorization` (or `GMFModel`) is used. If you're not sure what a GMF model is, be sure to check out the original paper, and the GMF class itself in the Xanthus docs. Anyway, here's how you set it up: 
 
 
 ```python
-from xanthus.models import GeneralizedMatrixFactorizationModel as GMFModel
+from xanthus.models import GeneralizedMatrixFactorization as GMFModel
 
-fit_params = dict(epochs=10, batch_size=256)
-
-model = GMFModel(
-    fit_params=fit_params, n_factors=32, negative_samples=4
-)
+model = GMFModel(train_ds.user_dim, train_ds.item_dim, factors=64)
+model.compile(optimizer="adam", loss="binary_crossentropy")
 ```
 
-What is going on here, you ask? Good question. First, you import the `GeneralizedMatrixFactorizationModel` as any other object. You then define `fit_params` -- fit parameters -- to define the training loop used by the Keras optimizer. All Xanthus neural recommender models inherit from the base `NeuralRecommenderModel` class. By default, this class (and therefore all child classes) utilize the `Adam` optimizer. You can configure this to use any optimizer you wish though!
-
-After the `fit_param`, the `GeneralizedMatrixFactorizationModel` is initialized. There are two further keyword arguments here, `n_factors` and `negative_samples`. In the former case, `n_factors` refers to the size of the latent factor space encoded by the model. The larger the number, the more expressive the model -- to a point. In the latter case, `negative_samples` configures the sampling pointwise sampling policy outlined by [He et al](). In practice, the model will be trained by sampling 'negative' instances for each positive instance in the set. In other words: for each user-item pair with a positive rating (in this case one -- remember `utils.as_implicit`?), a given number of `negative_samples` will be drawn that the user _did not_ interact with. This is resampled in each epoch. This helps the model learn more general patterns, and to avoid overfitting. Empirically, it makes quite a difference over other sampling approaches. If you're interested, you should look at the [pairwise loss used in Bayesian Personalized Ranking (BPR)]().
+So what's going on here? Well, `GMFModel` is a _subclass_ of the Keras `Model` class. Consequently, is shares the same interface. You will initialize your model with specific information (in this case information related to the size of the user and item input vectors and the size of the latent factors you're looking to compute), compile the model with a given loss and optimizer, and then train it. Straightforward enough, eh? In principle, you can use `GMFModel` however you'd use a 'normal' Keras model.
 
 You're now ready to fit your model. You can do this with:
 
 
 ```python
-model.fit(train_ds)
+# prepare training data
+users_x, items_x, y = train_ds.to_components(
+    negative_samples=4
+)
+model.fit([users_x, items_x], y, epochs=5)
 ```
 
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.4895 - val_loss: 0.3513
-    Epoch 2/2
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.3343 - val_loss: 0.3284
-    Epoch 3/3
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.3087 - val_loss: 0.3057
-    Epoch 4/4
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2892 - val_loss: 0.2919
+    Epoch 1/5
+    5729/5729 [==============================] - 7s 1ms/step - loss: 0.5001
+    Epoch 2/5
+    5729/5729 [==============================] - 7s 1ms/step - loss: 0.3685
+    Epoch 3/5
+    5729/5729 [==============================] - 7s 1ms/step - loss: 0.2969
+    Epoch 4/5
+    5729/5729 [==============================] - 7s 1ms/step - loss: 0.2246
     Epoch 5/5
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2753 - val_loss: 0.2737
-    Epoch 6/6
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2568 - val_loss: 0.2583
-    Epoch 7/7
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2385 - val_loss: 0.2387
-    Epoch 8/8
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2179 - val_loss: 0.2195
-    Epoch 9/9
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.2000 - val_loss: 0.1994
-    Epoch 10/10
-    1075/1075 [==============================] - 2s 2ms/step - loss: 0.1824 - val_loss: 0.1822
+    5729/5729 [==============================] - 7s 1ms/step - loss: 0.1581
 
 
 
 
 
-    GeneralizedMatrixFactorizationModel()
+    <tensorflow.python.keras.callbacks.History at 0x144717dd8>
 
 
 
-Remember that (as with any ML model) you'll want to tweak your hyperparameters (e.g. `n_factor`, regularization, etc.) to optimize your model's performance on your given dataset. The example model here is just a quick un-tuned model to show you the ropes.
+Remember that (as with any ML model) you'll want to tweak your hyperparameters (e.g. `factors`, regularization, etc.) to optimize your model's performance on your given dataset. The example model here is just a quick un-tuned model to show you the ropes.
 
 ## Evaluating the model
 
@@ -404,18 +394,26 @@ Now to diagnose how well your model has done. The evaluation protocol here is se
 ```python
 from xanthus.evaluate import create_rankings
 
-_, test_items, _ = test_ds.to_components(shuffle=False)
-users, items = create_rankings(test_ds, train_ds, n_samples=200)
+users, items = create_rankings(
+    test_ds, train_ds, output_dim=1, n_samples=100, unravel=True
+)
 ```
 
-So, what's going on here? First, you're importing the `he_sampling` function. This implements a sampling approach used be [He et al.]() in their work. The idea is that you evaluate your model on the user-item pairs in your test set, and for each 'true' user-item pair, you sample `n_samples` negative instances for that user (i.e. items they haven't interacted with). In the case of the `he_sampling` function, this produces and array of shape `n_users, n_samples + 1`. Concretely, for each user, you'll get an array where the first element is a positive sample (something they _did_ interact with) and `n_samples` negative samples (things they _did not_ interact with). 
+So, what's going on here? First, you're importing the `create_rankings` function. This implements a sampling approach used be _He et al_ in their work. The idea is that you evaluate your model on the user-item pairs in your test set, and for each 'true' user-item pair, you sample `n_samples` negative instances for that user (i.e. items they haven't interacted with). In the case of the `create_rankings` function, this produces and array of shape `n_users, n_samples + 1`. Concretely, for each user, you'll get an array where the first element is a positive sample (something they _did_ interact with) and `n_samples` negative samples (things they _did not_ interact with). 
 
 The rationale here is that by having the model rank these `n_samples + 1` items for each user, you'll be able to determine whether your model is learning an effective ranking function -- the positive sample _should_ appear higher in the recommendations than the negative results if the model is doing it's job. Here's how you can rank these sampled items:
 
 
 ```python
-recommended = model.predict(test_ds, users=users, items=items, n=10)
+from xanthus.models import utils
+test_users, test_items, _ = test_ds.to_components(shuffle=False)
+
+scores = model.predict([users, items], verbose=1, batch_size=256)
+recommended = utils.reshape_recommended(users.reshape(-1, 1), items.reshape(-1, 1), scores, 10, mode="array")
 ```
+
+    240/240 [==============================] - 0s 540us/step
+
 
 And finally for the evaluation, you can use the `score` function and the provided `metrics` in the Xanthus `evaluate` subpackage. Here's how you can use them:
 
@@ -427,8 +425,8 @@ print("t-nDCG", score(metrics.truncated_ndcg, test_items, recommended).mean())
 print("HR@k", score(metrics.precision_at_k, test_items, recommended).mean())
 ```
 
-    t-nDCG 0.4727691131482932
-    HR@k 0.6973684210526315
+    t-nDCG 0.4719391834962755
+    HR@k 0.7351973684210527
 
 
 Looking okay. Good work. Going into detail on how the metrics presented here work is beyond the scope of this notebook. If you're interested in what is going on here, make sure to check out the docs (docstrings) in the Xanthus package itself.
@@ -439,14 +437,18 @@ After all of that, it is time to see what you've won. Exciting times. You can ge
 
 
 ```python
-recommended = model.predict(users=users, items=items[:, 1:], n=5)
+scores = model.predict([users, items], verbose=1, batch_size=256)
+recommended = utils.reshape_recommended(users.reshape(-1, 1), items.reshape(-1, 1), scores, 10, mode="array")
 ```
+
+    240/240 [==============================] - 0s 578us/step
+
 
 Recall that the first 'column' in the `items` array corresponds to positive the positive sample for a user. You can skip that here. So now you have a great big array of integers. Not as exciting as you'd hoped? Fair enough. Xanthus provides a utility to convert the outputs of your model predictions into a more readable Pandas `DataFrame`. Specifically, your `DatasetEncoder` has the handy `to_df` method for just this job. Give it a set of _encoded_ users and a list of _encoded_ items for each user, and it'll build you a nice `DataFrame`. Here's how:
 
 
 ```python
-recommended_df = encoder.to_df(users, recommended)
+recommended_df = encoder.to_df(test_users.flatten(), recommended)
 recommended_df.head(25)
 ```
 
@@ -477,233 +479,363 @@ recommended_df.head(25)
       <th>item_2</th>
       <th>item_3</th>
       <th>item_4</th>
+      <th>item_5</th>
+      <th>item_6</th>
+      <th>item_7</th>
+      <th>item_8</th>
+      <th>item_9</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
       <td>1</td>
-      <td>There's Something About Mary (1998)</td>
-      <td>Crow, The (1994)</td>
-      <td>Star Trek II: The Wrath of Khan (1982)</td>
-      <td>Casablanca (1942)</td>
-      <td>Heathers (1989)</td>
+      <td>Saint, The (1997)</td>
+      <td>Fisher King, The (1991)</td>
+      <td>Lost Boys, The (1987)</td>
+      <td>West Side Story (1961)</td>
+      <td>Harry Potter and the Sorcerer's Stone (a.k.a. ...</td>
+      <td>Courage Under Fire (1996)</td>
+      <td>Thing, The (1982)</td>
+      <td>Tin Cup (1996)</td>
+      <td>Mask of Zorro, The (1998)</td>
+      <td>On Her Majesty's Secret Service (1969)</td>
     </tr>
     <tr>
       <th>1</th>
       <td>2</td>
-      <td>Lord of the Rings: The Return of the King, The...</td>
-      <td>Logan (2017)</td>
-      <td>Avatar (2009)</td>
-      <td>Sherlock Holmes (2009)</td>
-      <td>Truman Show, The (1998)</td>
+      <td>Seven (a.k.a. Se7en) (1995)</td>
+      <td>Django Unchained (2012)</td>
+      <td>Kung Fury (2015)</td>
+      <td>There's Something About Mary (1998)</td>
+      <td>Hanna (2011)</td>
+      <td>Crash (2004)</td>
+      <td>The Boss Baby (2017)</td>
+      <td>Unbreakable (2000)</td>
+      <td>Finding Dory (2016)</td>
+      <td>Dr. Horrible's Sing-Along Blog (2008)</td>
     </tr>
     <tr>
       <th>2</th>
       <td>3</td>
-      <td>Blade Runner (1982)</td>
-      <td>River Wild, The (1994)</td>
-      <td>Quiz Show (1994)</td>
-      <td>First Knight (1995)</td>
-      <td>Ref, The (1994)</td>
+      <td>Four Weddings and a Funeral (1994)</td>
+      <td>African Queen, The (1951)</td>
+      <td>Jeremiah Johnson (1972)</td>
+      <td>Fantastic Voyage (1966)</td>
+      <td>Cobra (1986)</td>
+      <td>Notorious (1946)</td>
+      <td>Monsoon Wedding (2001)</td>
+      <td>Heartbreak Ridge (1986)</td>
+      <td>Miracle on 34th Street (1947)</td>
+      <td>Raise the Titanic (1980)</td>
     </tr>
     <tr>
       <th>3</th>
       <td>4</td>
-      <td>Boot, Das (Boat, The) (1981)</td>
-      <td>Sling Blade (1996)</td>
-      <td>Terminator, The (1984)</td>
-      <td>Rain Man (1988)</td>
-      <td>Little Big Man (1970)</td>
+      <td>Killing Fields, The (1984)</td>
+      <td>Dracula (Bram Stoker's Dracula) (1992)</td>
+      <td>Midnight Cowboy (1969)</td>
+      <td>Pi (1998)</td>
+      <td>Truman Show, The (1998)</td>
+      <td>Out of Sight (1998)</td>
+      <td>Last Emperor, The (1987)</td>
+      <td>Once Were Warriors (1994)</td>
+      <td>Everyone Says I Love You (1996)</td>
+      <td>Nightmare Before Christmas, The (1993)</td>
     </tr>
     <tr>
       <th>4</th>
       <td>5</td>
-      <td>Much Ado About Nothing (1993)</td>
-      <td>Star Trek: First Contact (1996)</td>
-      <td>Batman (1989)</td>
-      <td>One Flew Over the Cuckoo's Nest (1975)</td>
-      <td>Sling Blade (1996)</td>
+      <td>Harry Potter and the Sorcerer's Stone (a.k.a. ...</td>
+      <td>This Is Spinal Tap (1984)</td>
+      <td>Mask, The (1994)</td>
+      <td>Airplane! (1980)</td>
+      <td>Friday (1995)</td>
+      <td>Star Trek IV: The Voyage Home (1986)</td>
+      <td>Kelly's Heroes (1970)</td>
+      <td>Inception (2010)</td>
+      <td>What Dreams May Come (1998)</td>
+      <td>For Love of the Game (1999)</td>
     </tr>
     <tr>
       <th>5</th>
       <td>6</td>
-      <td>Crimson Tide (1995)</td>
-      <td>Searching for Bobby Fischer (1993)</td>
-      <td>James and the Giant Peach (1996)</td>
-      <td>Ronin (1998)</td>
-      <td>G.I. Jane (1997)</td>
+      <td>Home Alone (1990)</td>
+      <td>Supercop (Police Story 3: Supercop) (Jing cha ...</td>
+      <td>Dragonheart (1996)</td>
+      <td>Funny People (2009)</td>
+      <td>Kazaam (1996)</td>
+      <td>Red Dawn (1984)</td>
+      <td>Patch Adams (1998)</td>
+      <td>Ruthless People (1986)</td>
+      <td>Footloose (1984)</td>
+      <td>Sleepers (1996)</td>
     </tr>
     <tr>
       <th>6</th>
       <td>7</td>
-      <td>Unbreakable (2000)</td>
-      <td>Love Actually (2003)</td>
-      <td>Illusionist, The (2006)</td>
-      <td>Training Day (2001)</td>
-      <td>Hero (Ying xiong) (2002)</td>
+      <td>There's Something About Mary (1998)</td>
+      <td>Gladiator (2000)</td>
+      <td>Ferris Bueller's Day Off (1986)</td>
+      <td>Crimson Tide (1995)</td>
+      <td>Die Hard: With a Vengeance (1995)</td>
+      <td>Shakespeare in Love (1998)</td>
+      <td>Young Frankenstein (1974)</td>
+      <td>Batman (1989)</td>
+      <td>Game, The (1997)</td>
+      <td>Christmas Story, A (1983)</td>
     </tr>
     <tr>
       <th>7</th>
       <td>8</td>
-      <td>Sixth Sense, The (1999)</td>
-      <td>Ghost (1990)</td>
-      <td>Pocahontas (1995)</td>
-      <td>Thomas Crown Affair, The (1999)</td>
-      <td>Air Force One (1997)</td>
+      <td>Firm, The (1993)</td>
+      <td>Dangerous Minds (1995)</td>
+      <td>Few Good Men, A (1992)</td>
+      <td>Who Framed Roger Rabbit? (1988)</td>
+      <td>Bonnie and Clyde (1967)</td>
+      <td>Superman (1978)</td>
+      <td>Carlito's Way (1993)</td>
+      <td>Rocky III (1982)</td>
+      <td>Trainspotting (1996)</td>
+      <td>What's Love Got to Do with It? (1993)</td>
     </tr>
     <tr>
       <th>8</th>
       <td>9</td>
-      <td>Shrek (2001)</td>
-      <td>Indiana Jones and the Last Crusade (1989)</td>
-      <td>Ocean's Eleven (2001)</td>
-      <td>South Park: Bigger, Longer and Uncut (1999)</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
+      <td>Cinema Paradiso (Nuovo cinema Paradiso) (1989)</td>
+      <td>Lord of the Rings: The Fellowship of the Ring,...</td>
+      <td>Finding Nemo (2003)</td>
+      <td>Hangover, The (2009)</td>
+      <td>Running Man, The (1987)</td>
+      <td>Ben-Hur (1959)</td>
+      <td>Talented Mr. Ripley, The (1999)</td>
+      <td>Sliding Doors (1998)</td>
+      <td>Kagemusha (1980)</td>
+      <td>Some Like It Hot (1959)</td>
     </tr>
     <tr>
       <th>9</th>
       <td>10</td>
-      <td>Lion King, The (1994)</td>
-      <td>Zombieland (2009)</td>
-      <td>Rush Hour 2 (2001)</td>
-      <td>300 (2007)</td>
-      <td>Horrible Bosses 2 (2014)</td>
+      <td>Young Frankenstein (1974)</td>
+      <td>Batman &amp; Robin (1997)</td>
+      <td>Tangled (2010)</td>
+      <td>Louis C.K.: Hilarious (2010)</td>
+      <td>Pacific Rim (2013)</td>
+      <td>Planet of the Apes (2001)</td>
+      <td>American Pie (1999)</td>
+      <td>Guardians of the Galaxy (2014)</td>
+      <td>X-Men (2000)</td>
+      <td>28 Days Later (2002)</td>
     </tr>
     <tr>
       <th>10</th>
       <td>11</td>
-      <td>X-Men (2000)</td>
-      <td>Piano, The (1993)</td>
-      <td>American History X (1998)</td>
-      <td>Waterworld (1995)</td>
-      <td>Snatch (2000)</td>
+      <td>Heat (1995)</td>
+      <td>Analyze This (1999)</td>
+      <td>To Wong Foo, Thanks for Everything! Julie Newm...</td>
+      <td>Mystery, Alaska (1999)</td>
+      <td>I, Robot (2004)</td>
+      <td>Invincible (2006)</td>
+      <td>Gandhi (1982)</td>
+      <td>Galaxy Quest (1999)</td>
+      <td>Training Day (2001)</td>
+      <td>Romy and Michele's High School Reunion (1997)</td>
     </tr>
     <tr>
       <th>11</th>
       <td>12</td>
-      <td>Beauty and the Beast (1991)</td>
-      <td>Birdcage, The (1996)</td>
-      <td>Perfect Storm, The (2000)</td>
-      <td>Braveheart (1995)</td>
-      <td>Courage Under Fire (1996)</td>
+      <td>'burbs, The (1989)</td>
+      <td>Hercules (1997)</td>
+      <td>Payback (1999)</td>
+      <td>Three Men and a Baby (1987)</td>
+      <td>Enemy of the State (1998)</td>
+      <td>Top Gun (1986)</td>
+      <td>White Squall (1996)</td>
+      <td>Dumbo (1941)</td>
+      <td>Amistad (1997)</td>
+      <td>Quiz Show (1994)</td>
     </tr>
     <tr>
       <th>12</th>
       <td>13</td>
       <td>Die Hard (1988)</td>
-      <td>Lion King, The (1994)</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
-      <td>Jumanji (1995)</td>
-      <td>Casino (1995)</td>
+      <td>Outbreak (1995)</td>
+      <td>Zootopia (2016)</td>
+      <td>I Am Legend (2007)</td>
+      <td>Kate &amp; Leopold (2001)</td>
+      <td>Lost in Translation (2003)</td>
+      <td>Battle Royale (Batoru rowaiaru) (2000)</td>
+      <td>Mallrats (1995)</td>
+      <td>Gangs of New York (2002)</td>
+      <td>Lethal Weapon (1987)</td>
     </tr>
     <tr>
       <th>13</th>
       <td>14</td>
-      <td>Terminator 2: Judgment Day (1991)</td>
-      <td>Godfather, The (1972)</td>
-      <td>Babe (1995)</td>
-      <td>First Knight (1995)</td>
-      <td>Die Hard (1988)</td>
+      <td>Don Juan DeMarco (1995)</td>
+      <td>Jungle Book, The (1994)</td>
+      <td>River Wild, The (1994)</td>
+      <td>National Treasure (2004)</td>
+      <td>Super Troopers (2001)</td>
+      <td>Amistad (1997)</td>
+      <td>Django Unchained (2012)</td>
+      <td>Son in Law (1993)</td>
+      <td>Chocolat (1988)</td>
+      <td>Doctor Zhivago (1965)</td>
     </tr>
     <tr>
       <th>14</th>
       <td>15</td>
-      <td>Good Will Hunting (1997)</td>
-      <td>Truman Show, The (1998)</td>
-      <td>Kiss Kiss Bang Bang (2005)</td>
-      <td>Zodiac (2007)</td>
-      <td>Heat (1995)</td>
+      <td>Raiders of the Lost Ark (Indiana Jones and the...</td>
+      <td>Silence of the Lambs, The (1991)</td>
+      <td>Hobbit: The Desolation of Smaug, The (2013)</td>
+      <td>50 First Dates (2004)</td>
+      <td>Prometheus (2012)</td>
+      <td>Vertigo (1958)</td>
+      <td>Fear and Loathing in Las Vegas (1998)</td>
+      <td>Billy Madison (1995)</td>
+      <td>Knocked Up (2007)</td>
+      <td>Eraser (1996)</td>
     </tr>
     <tr>
       <th>15</th>
       <td>16</td>
-      <td>Indiana Jones and the Last Crusade (1989)</td>
-      <td>Saving Private Ryan (1998)</td>
-      <td>Gladiator (2000)</td>
-      <td>Birds, The (1963)</td>
-      <td>Pianist, The (2002)</td>
+      <td>Life Is Beautiful (La Vita è bella) (1997)</td>
+      <td>Ed Wood (1994)</td>
+      <td>Wallace &amp; Gromit: A Close Shave (1995)</td>
+      <td>Pinocchio (1940)</td>
+      <td>Fast Times at Ridgemont High (1982)</td>
+      <td>Corpse Bride (2005)</td>
+      <td>Basic Instinct (1992)</td>
+      <td>Billy Elliot (2000)</td>
+      <td>Before Sunrise (1995)</td>
+      <td>Gia (1998)</td>
     </tr>
     <tr>
       <th>16</th>
       <td>17</td>
-      <td>Spider-Man (2002)</td>
-      <td>Fifth Element, The (1997)</td>
-      <td>Master and Commander: The Far Side of the Worl...</td>
-      <td>Field of Dreams (1989)</td>
-      <td>Team America: World Police (2004)</td>
+      <td>Dr. Strangelove or: How I Learned to Stop Worr...</td>
+      <td>RoboCop (1987)</td>
+      <td>The Devil's Advocate (1997)</td>
+      <td>eXistenZ (1999)</td>
+      <td>Robin Hood: Men in Tights (1993)</td>
+      <td>Bourne Supremacy, The (2004)</td>
+      <td>Blair Witch Project, The (1999)</td>
+      <td>Sicario (2015)</td>
+      <td>The Count of Monte Cristo (2002)</td>
+      <td>Indiana Jones and the Kingdom of the Crystal S...</td>
     </tr>
     <tr>
       <th>17</th>
       <td>18</td>
-      <td>Princess Mononoke (Mononoke-hime) (1997)</td>
-      <td>28 Days Later (2002)</td>
-      <td>Adjustment Bureau, The (2011)</td>
-      <td>Stardust (2007)</td>
-      <td>Ghostbusters (a.k.a. Ghost Busters) (1984)</td>
+      <td>Run Lola Run (Lola rennt) (1998)</td>
+      <td>WALL·E (2008)</td>
+      <td>Fury (2014)</td>
+      <td>Fish Called Wanda, A (1988)</td>
+      <td>Peter Pan (1953)</td>
+      <td>Braveheart (1995)</td>
+      <td>Scanner Darkly, A (2006)</td>
+      <td>The Hobbit: The Battle of the Five Armies (2014)</td>
+      <td>Day After Tomorrow, The (2004)</td>
+      <td>Cowboy Bebop: The Movie (Cowboy Bebop: Tengoku...</td>
     </tr>
     <tr>
       <th>18</th>
       <td>19</td>
-      <td>GoldenEye (1995)</td>
-      <td>Lethal Weapon (1987)</td>
-      <td>Cool Hand Luke (1967)</td>
-      <td>Crimson Tide (1995)</td>
-      <td>Analyze This (1999)</td>
+      <td>Like Water for Chocolate (Como agua para choco...</td>
+      <td>Crocodile Dundee (1986)</td>
+      <td>Speed (1994)</td>
+      <td>Congo (1995)</td>
+      <td>Ruthless People (1986)</td>
+      <td>101 Dalmatians (One Hundred and One Dalmatians...</td>
+      <td>Pleasantville (1998)</td>
+      <td>Killing Fields, The (1984)</td>
+      <td>Shanghai Noon (2000)</td>
+      <td>*batteries not included (1987)</td>
     </tr>
     <tr>
       <th>19</th>
       <td>20</td>
-      <td>Shakespeare in Love (1998)</td>
-      <td>Crash (2004)</td>
-      <td>Walk the Line (2005)</td>
-      <td>March of the Penguins (Marche de l'empereur, L...</td>
-      <td>Cars (2006)</td>
+      <td>Dodgeball: A True Underdog Story (2004)</td>
+      <td>Harry Potter and the Goblet of Fire (2005)</td>
+      <td>Citizen Kane (1941)</td>
+      <td>13 Going on 30 (2004)</td>
+      <td>Star Wars: Episode III - Revenge of the Sith (...</td>
+      <td>Alien: Resurrection (1997)</td>
+      <td>Lord of the Rings, The (1978)</td>
+      <td>Mask, The (1994)</td>
+      <td>20,000 Leagues Under the Sea (1954)</td>
+      <td>Over the Hedge (2006)</td>
     </tr>
     <tr>
       <th>20</th>
       <td>21</td>
-      <td>Wreck-It Ralph (2012)</td>
-      <td>Atlantis: The Lost Empire (2001)</td>
-      <td>Harry Potter and the Order of the Phoenix (2007)</td>
-      <td>True Lies (1994)</td>
-      <td>Happy Gilmore (1996)</td>
+      <td>Gone Girl (2014)</td>
+      <td>Whiplash (2014)</td>
+      <td>Grown Ups 2 (2013)</td>
+      <td>Mercury Rising (1998)</td>
+      <td>(500) Days of Summer (2009)</td>
+      <td>Apocalypto (2006)</td>
+      <td>Red Riding Hood (2011)</td>
+      <td>Creepshow (1982)</td>
+      <td>World Is Not Enough, The (1999)</td>
+      <td>Dear Zachary: A Letter to a Son About His Fath...</td>
     </tr>
     <tr>
       <th>21</th>
       <td>22</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
-      <td>E.T. the Extra-Terrestrial (1982)</td>
-      <td>WALL·E (2008)</td>
-      <td>Harry Potter and the Sorcerer's Stone (a.k.a. ...</td>
+      <td>Bowling for Columbine (2002)</td>
+      <td>Memento (2000)</td>
       <td>Blow (2001)</td>
+      <td>Pianist, The (2002)</td>
+      <td>Star Wars: Episode II - Attack of the Clones (...</td>
+      <td>Apollo 13 (1995)</td>
+      <td>Rudy (1993)</td>
+      <td>Romeo and Juliet (1968)</td>
+      <td>Beetlejuice (1988)</td>
+      <td>X-Men: Days of Future Past (2014)</td>
     </tr>
     <tr>
       <th>22</th>
       <td>23</td>
-      <td>Insider, The (1999)</td>
-      <td>Streetcar Named Desire, A (1951)</td>
-      <td>Wizard of Oz, The (1939)</td>
-      <td>Midnight Cowboy (1969)</td>
-      <td>Jurassic Park (1993)</td>
+      <td>Spirited Away (Sen to Chihiro no kamikakushi) ...</td>
+      <td>Excalibur (1981)</td>
+      <td>Once Upon a Time in America (1984)</td>
+      <td>Austin Powers: The Spy Who Shagged Me (1999)</td>
+      <td>Jerk, The (1979)</td>
+      <td>Cat on a Hot Tin Roof (1958)</td>
+      <td>Wallace &amp; Gromit: The Wrong Trousers (1993)</td>
+      <td>You Can Count on Me (2000)</td>
+      <td>Out of Sight (1998)</td>
+      <td>Harry Potter and the Deathly Hallows: Part 1 (...</td>
     </tr>
     <tr>
       <th>23</th>
       <td>24</td>
-      <td>Requiem for a Dream (2000)</td>
-      <td>Star Wars: Episode III - Revenge of the Sith (...</td>
-      <td>Blood Diamond (2006)</td>
-      <td>Howl's Moving Castle (Hauru no ugoku shiro) (2...</td>
-      <td>Corpse Bride (2005)</td>
+      <td>Léon: The Professional (a.k.a. The Professiona...</td>
+      <td>King Kong (2005)</td>
+      <td>Lethal Weapon 3 (1992)</td>
+      <td>Star Trek Beyond (2016)</td>
+      <td>Star Trek: Nemesis (2002)</td>
+      <td>Road to Perdition (2002)</td>
+      <td>To Kill a Mockingbird (1962)</td>
+      <td>A-Team, The (2010)</td>
+      <td>Home (2015)</td>
+      <td>Stripes (1981)</td>
     </tr>
     <tr>
       <th>24</th>
       <td>25</td>
-      <td>Ex Machina (2015)</td>
-      <td>Usual Suspects, The (1995)</td>
-      <td>The Lego Movie (2014)</td>
-      <td>Clear and Present Danger (1994)</td>
-      <td>Pirates of the Caribbean: The Curse of the Bla...</td>
+      <td>Shawshank Redemption, The (1994)</td>
+      <td>WALL·E (2008)</td>
+      <td>Walk the Line (2005)</td>
+      <td>Town, The (2010)</td>
+      <td>Cars (2006)</td>
+      <td>Elite Squad: The Enemy Within (Tropa de Elite ...</td>
+      <td>Mulholland Falls (1996)</td>
+      <td>Motorcycle Diaries, The (Diarios de motociclet...</td>
+      <td>Rainmaker, The (1997)</td>
+      <td>Dallas Buyers Club (2013)</td>
     </tr>
   </tbody>
 </table>

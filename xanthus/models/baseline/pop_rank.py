@@ -9,10 +9,10 @@ import numpy as np
 from numpy import ndarray
 
 from xanthus.datasets import Dataset
-from xanthus.models import base
+from xanthus.models.legacy import base
 
 
-class PopRankModel(base.RecommenderModel):
+class PopRank(base.RecommenderModel):
     """
     A Popularity Ranking recommender model. This class implements some simple
     popularity-based recommendation approaches. By default, it will simply return
@@ -55,7 +55,7 @@ class PopRankModel(base.RecommenderModel):
         self._alpha = alpha
         self._limit = limit
 
-    def fit(self, dataset: Dataset) -> "PopRankModel":
+    def fit(self, dataset: Dataset) -> "PopRank":
         """
         Fit the model to a provided Dataset.
 
@@ -66,7 +66,7 @@ class PopRankModel(base.RecommenderModel):
 
         Returns
         -------
-        output: PopRankModel
+        output: PopRank
             Returns itself. How fun.
 
         See Also

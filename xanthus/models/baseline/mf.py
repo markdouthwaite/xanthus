@@ -15,7 +15,7 @@ from implicit.bpr import BayesianPersonalizedRanking
 from xanthus.datasets import Dataset
 
 
-class MatrixFactorizationModel:
+class MatrixFactorization:
     """
     A simple adapter for 'non-neural' matrix factorization algorithms.
 
@@ -46,7 +46,7 @@ class MatrixFactorizationModel:
         self._mat = None
         self._method = method
 
-    def fit(self, dataset: Dataset) -> "MatrixFactorizationModel":
+    def fit(self, dataset: Dataset) -> "MatrixFactorization":
         """
         Fit the model to a provided Dataset.
 
@@ -57,7 +57,7 @@ class MatrixFactorizationModel:
 
         Returns
         -------
-        output: MatrixFactorizationModel
+        output: MatrixFactorization
             Returns itself. How fun.
 
         See Also

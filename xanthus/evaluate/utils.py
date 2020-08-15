@@ -5,7 +5,7 @@ Copyright (c) 2018-2020 Mark Douthwaite
 """
 
 import warnings
-from typing import Tuple, List
+from typing import Tuple
 
 from pandas import DataFrame, concat
 
@@ -15,6 +15,7 @@ from numpy import (
     ndarray,
     unique,
     c_,
+    asarray,
 )
 from numpy.random import choice
 
@@ -114,7 +115,7 @@ def split(
 
     References
     ----------
-    [1] Inspired by https://docs.microsoft.com/en-us/azure/machine-learning/studio-module-reference/split-data-using-recommender-split#:~:text=The%20Recommender%20Split%20option%20is,user%2Ditem%2Drating%20triples.
+    [1] Inspired by https://bit.ly/3fCL9Xc (Azure Recommender Split)
 
     Notes
     -----
@@ -197,8 +198,8 @@ def split(
     return train_df[columns], test_df[columns]
 
 
-def he_sampling(
-    a: Dataset, b: Dataset, n_samples: int = 100
+def create_rankings(
+    a: Dataset, b: Dataset, n_samples: int = 100, unravel: bool = False, **kwargs: int
 ) -> Tuple[ndarray, ndarray]:
     """
     Sample a dataset 'a' with 'n' negative samples given interactions in dataset 'a'
@@ -224,12 +225,21 @@ def he_sampling(
         The total number of negative samples per user to generate. For example, if the
         dataset 'a' was generated from a leave-one-out split, and n_samples=100, that
         user would receive 101 samples.
+    unravel: bool
+        If 'True', the function will return two arrays, where the first element of the
+        first array corresponds to the user _vector_ (i.e. user ID + optional metadata),
+        the first element of the first array corresponds to an associated sampled item
+        vector(i.e. item ID + optional metadata).
 
     Returns
     -------
     output: (ndarray, List[ndarray])
-        The first element corresponds to an array of _ordered_ user ids, the second
-        the per-user samples.
+        If 'unravel=False', the first element corresponds to an array of _ordered_ user
+        ids, the second the `n_samples+1`per-user samples.
+        If `unravel=True`, the first element corresponds to an array of _ordered_ user
+        vectors, the second to each individual item vector. See `unravel` argument and
+        `_unravel_ranked`, below. This function is provided for use when evaluating
+        Keras Models with the `predict` method.
 
     References
     ----------
@@ -253,6 +263,34 @@ def he_sampling(
 
     groups, grouped = groupby(sampled_users, sampled_items)
 
-    grouped = c_[items[: len(unique_users)], grouped]
+    grouped = c_[grouped, items[: len(unique_users)]]
 
-    return unique_users, grouped
+    if unravel:
+        return _unravel_sampled(unique_users, grouped, a, **kwargs)
+    else:
+        return unique_users, grouped
+
+
+def _unravel_sampled(
+    users: ndarray, ranked: ndarray, a: Dataset, output_dim: int = 1
+) -> Tuple[ndarray, ndarray]:
+    """
+    Unravel two arrays of the form:
+        user_{i}, [item_{i,0}, ..., item_{i, j}
+    Into the form:
+        user_{i}, item_{i, 0}
+        ...
+        user_{i}, item_{i, j}
+    """
+
+    z = list([user, item] for i, user in enumerate(users) for item in ranked[i])
+    z = asarray(z)
+
+    if output_dim > 1:
+        users = asarray(list(a.iter_user(z[:, 0], n_dim=output_dim)))
+        items = asarray(list(a.iter_item(z[:, 1], n_dim=output_dim)))
+    else:
+        users = z[:, 0]
+        items = z[:, 1]
+
+    return users, items

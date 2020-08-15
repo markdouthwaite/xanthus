@@ -4,317 +4,292 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
-from typing import Optional, Any, Tuple
+
+from typing import Optional, Any, NoReturn, Iterable, List, Union, Callable, Tuple
+
+from tensorflow import Tensor
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Multiply, Dense, Concatenate
+from tensorflow.keras.layers import Multiply, Dense, Concatenate, Layer
 from tensorflow.keras.initializers import lecun_uniform
-from tensorflow.keras.regularizers import l2
+from tensorflow.keras.regularizers import Regularizer
+from .utils import InputEmbeddingBlock
 
-from xanthus.datasets import Dataset
-from xanthus.models import utils, base
+Activation = Callable[[Tensor], Tensor]
 
 
-class MultiLayerPerceptronModel(base.NeuralRecommenderModel):
+class GeneralizedMatrixFactorization(Model):
     """
-    An implementation of a Multilayer Perceptron (MLP) model in Keras.
-
-    Parameters
-    ----------
-    layers: tuple
-        A tuple, where each element corresponds to the number of units in each of the
-        layers of the MLP.
-    activations: str
-        The activation function to use for each of the layers in the MLP.
-    l2_reg: float
-        The L2 regularization to be applied to each of the layers in the MLP.
+    A Keras model implementing Generalized Matrix Factorization (GMF) architecture
+    from [1].
 
     References
     ----------
     [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
-
-    See Also
-    --------
-    xanthus.models.base.NeuralRecommenderModel
-
     """
 
     def __init__(
         self,
-        *args: Optional[Any],
-        layers: Tuple[int, ...] = (64, 32, 16, 8),
-        activations: str = "relu",
-        l2_reg: float = 1e-3,
-        **kwargs: Optional[Any]
-    ):
-        """Initialize a MultiLayerPerceptronModel."""
-
-        super().__init__(*args, **kwargs)
-        self._activations = activations
-        self._layers = layers
-        self._l2_reg = l2_reg
-
-    def _build_model(
-        self,
-        dataset: Dataset,
-        n_user_dim: int = 1,
-        n_item_dim: int = 1,
-        n_factors: int = 50,
-        **kwargs: Optional[Any]
-    ) -> Model:
+        n: int,
+        m: int,
+        factors: int = 32,
+        *args: Any,
+        embedding_regularizer: Optional[Regularizer] = None,
+        **kwargs: Any,
+    ) -> None:
         """
-        Build a Keras model, in this case a MultiLayerPerceptronModel (MLP)
-        model. See [1] for more info. The original code released with [1] can be
-        found at [2].
+        Initialize a GMF model.
 
         Parameters
         ----------
-        dataset: Dataset
-            The input dataset. This is used to specify the 'vocab' size of each of the
-            'embedding blocks' (of which there are two in this architecture).
-        n_user_dim: int
-            The dimensionality of the user input vector. When using metadata, you should
-            make sure to set this to the size of each of these vectors.
-        n_item_dim: int
-            The dimensionality of the item input vector. When using metadata, you should
-            make sure to set this to the size of each of these vectors.
-        n_factors: int
-            The dimensionality of the latent feature space _for both users and items_
-            for the GMF component of the architecture.
+        n: int
+            The size of the 'vocabulary' of users (i.e. unique user IDs + metadata tags)
+        m: int
+            The size of the 'vocabulary' of items (i.e. unique item IDs + metadata tags)
+        factors: int
+            The size of 'predictive factors' (analogous to latent features) of the MF
+            model.
+        embedding_regularizer: Regularizer
+            A regularizer to be applied to Embdeddings. See keras.layers.Embedding
+        args: Any, optional
+            Optional args to be passed to base keras.Model.
+        kwargs: Any
+            Optional kwargs to be passed to base keras.Model
 
-        Returns
-        -------
-        output: Model
-            The 'complete' Keras Model object.
-
-        References
-        ----------
-        [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
-        [2] https://github.com/hexiangnan/neural_collaborative_filtering
         """
 
-        n_user_vocab = dataset.all_users.shape[0]
-        n_item_vocab = dataset.all_items.shape[0]
-
-        if dataset.user_meta is not None:
-            n_user_vocab += dataset.user_meta.shape[1]
-        if dataset.item_meta is not None:
-            n_item_vocab += dataset.item_meta.shape[1]
-
-        # mlp block
-        user_input, user_bias, user_factors = utils.get_embedding_block(
-            n_user_vocab, n_user_dim, int(self._layers[0] / 2)
+        super().__init__(*args, **kwargs)
+        self.user_embedding = InputEmbeddingBlock(
+            n, factors, name="user_embeddings", regularizer=embedding_regularizer
         )
-        item_input, item_bias, item_factors = utils.get_embedding_block(
-            n_item_vocab, n_item_dim, int(self._layers[0] / 2)
+        self.item_embedding = InputEmbeddingBlock(
+            m, factors, name="item_embeddings", regularizer=embedding_regularizer
         )
-
-        body = Concatenate()([user_factors, item_factors])
-
-        for layer in self._layers:
-            body = Dense(
-                layer,
-                activity_regularizer=l2(self._l2_reg),
-                activation=self._activations,
-            )(body)
-
-        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(
-            body
+        self.multiply = Multiply(name="multiply")
+        self.prediction = Dense(
+            1,
+            activation="sigmoid",
+            kernel_initializer=lecun_uniform(),
+            name="prediction",
         )
 
-        return Model(inputs=[user_input, item_input], outputs=output)
+    def call(
+        self,
+        inputs: Union[List[Tensor], Tensor],
+        training: Optional[bool] = None,
+        mask: Optional[Union[List[Tensor], Tensor]] = None,
+    ) -> Union[List[Tensor], Tensor]:
+        """Call the model."""
+
+        user_z = self.user_embedding(inputs[0])
+        item_z = self.item_embedding(inputs[1])
+        z = self.multiply([user_z, item_z])
+        return self.prediction(z)
 
 
-class NeuralMatrixFactorizationModel(base.NeuralRecommenderModel):
+class MultiLayerPerceptron(Model):
     """
-    An implementation of a Neural Matrix Factorization (NeuMF) model in Keras.
-
-    Parameters
-    ----------
-    layers: tuple
-        A tuple, where each element corresponds to the number of units in each of the
-        layers of the MLP.
-    activations: str
-        The activation function to use for each of the layers in the MLP.
-    l2_reg: float
-        The L2 regularization to be applied to each of the layers in the MLP.
+    A Keras model implementing Multilayer Perceptron Model (MLP) recommendation model
+    architecture described in [1].
 
     References
     ----------
     [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
-
-    See Also
-    --------
-    xanthus.models.base.NeuralRecommenderModel
-
     """
 
     def __init__(
         self,
-        *args: Optional[Any],
-        layers: Tuple[int, ...] = (64, 32, 16, 8),
-        activations: str = "relu",
-        l2_reg: float = 1e-3,
-        **kwargs: Optional[Any]
-    ):
-        """Initialize a MultiLayerPerceptronModel."""
-
-        super().__init__(*args, **kwargs)
-        self._activations = activations
-        self._layers = layers
-        self._l2_reg = l2_reg
-
-    def _build_model(
-        self,
-        dataset: Dataset,
-        n_user_dim: int = 1,
-        n_item_dim: int = 1,
-        n_factors: int = 50,
-        **kwargs: Optional[Any]
-    ) -> Model:
+        n: int,
+        m: int,
+        layers: Tuple[int, ...] = (32, 16, 8),
+        regularizer: Optional[Regularizer] = None,
+        embedding_regularizer: Optional[Regularizer] = None,
+        activation: Union[str, Activation] = "relu",
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """
-        Build a Keras model, in this case a NeuralMatrixFactorizationModel (NeuMF)
-        model. This is a recommender model with two input branches (one half the same
-        architecture as in GeneralizedMatrixFactorizationModel, the other the same
-        architecture as in MultiLayerPerceptronModel. See [1] for more info. The
-        original code released with [1] can be found at [2].
+        Initialize a GMF model.
 
         Parameters
         ----------
-        dataset: Dataset
-            The input dataset. This is used to specify the 'vocab' size of each of the
-            'embedding blocks' (of which there are four in this architecture).
-        n_user_dim: int
-            The dimensionality of the user input vector. When using metadata, you should
-            make sure to set this to the size of each of these vectors.
-        n_item_dim: int
-            The dimensionality of the item input vector. When using metadata, you should
-            make sure to set this to the size of each of these vectors.
-        n_factors: int
-            The dimensionality of the latent feature space _for both users and items_
-            for the GMF component of the architecture.
-
-        Returns
-        -------
-        output: Model
-            The 'complete' Keras Model object.
-
-        References
-        ----------
-        [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
-        [2] https://github.com/hexiangnan/neural_collaborative_filtering
+        n: int
+            The size of the 'vocabulary' of users (i.e. unique user IDs + metadata tags)
+        m: int
+            The size of the 'vocabulary' of items (i.e. unique item IDs + metadata tags)
+        layers: tuple
+            A tuple, where each element corresponds to the number of units in each of
+            the layers of the MLP.
+        regularizer: Regularizer
+            A regularizer to be applied to hidden layers. See keras.layers.Dense
+        embedding_regularizer: Regularizer
+            A regularizer to be applied to Embdeddings. See keras.layers.Embedding
+        activation: str, Regularizer
+            The activation function to use for hidden layers.
+        args: Any, optional
+            Optional args to be passed to base keras.Model.
+        kwargs: Any
+            Optional kwargs to be passed to base keras.Model
 
         """
 
-        n_user_vocab = dataset.all_users.shape[0]
-        n_item_vocab = dataset.all_items.shape[0]
+        super().__init__(*args, **kwargs)
 
-        if dataset.user_meta is not None:
-            n_user_vocab += dataset.user_meta.shape[1]
-        if dataset.item_meta is not None:
-            n_item_vocab += dataset.item_meta.shape[1]
-
-        # mlp block
-        user_input, mlp_user_bias, mlp_user_factors = utils.get_embedding_block(
-            n_user_vocab, n_user_dim, int(self._layers[0] / 2)
+        self.user_embedding = InputEmbeddingBlock(
+            n, layers[0] // 2, name="user_embeddings", regularizer=embedding_regularizer
         )
-        item_input, mlp_item_bias, mlp_item_factors = utils.get_embedding_block(
-            n_item_vocab, n_item_dim, int(self._layers[0] / 2)
+        self.item_embedding = InputEmbeddingBlock(
+            m, layers[0] // 2, name="item_embeddings", regularizer=embedding_regularizer
+        )
+        self.concat = Concatenate(name="concat")
+        self.hidden = list(self._build_layers(layers, activation, regularizer))
+        self.prediction = Dense(
+            1,
+            activation="sigmoid",
+            kernel_initializer=lecun_uniform(),
+            name="prediction",
         )
 
-        mlp_body = Concatenate()([mlp_user_factors, mlp_item_factors])
+    @staticmethod
+    def _build_layers(
+        layers: Iterable[int], activation: Union[str, Activation], regularizer: Regularizer
+    ) -> Iterable[Layer]:
+        """Build the model's hidden layers."""
 
-        for layer in self._layers:
-            mlp_body = Dense(
+        for i, layer in enumerate(layers):
+            yield Dense(
                 layer,
-                activity_regularizer=l2(self._l2_reg),
-                activation=self._activations,
-            )(mlp_body)
+                activity_regularizer=regularizer,
+                activation=activation,
+                name=f"layer{i+1}",
+            )
 
-        # mf block
-        user_input, mf_user_bias, mf_user_factors = utils.get_embedding_block(
-            n_user_vocab, n_user_dim, n_factors, inputs=user_input,
-        )
-        item_input, mf_item_bias, mf_item_factors = utils.get_embedding_block(
-            n_item_vocab, n_item_dim, n_factors, inputs=item_input,
-        )
-        mf_body = Multiply()([mf_user_factors, mf_item_factors])
+    def call(
+        self,
+        inputs: Union[List[Tensor], Tensor],
+        training: Optional[bool] = None,
+        mask: Optional[Union[List[Tensor], Tensor]] = None,
+    ) -> Union[List[Tensor], Tensor]:
+        """Invoke the model. A single 'forward pass'."""
 
-        body = Concatenate()([mf_body, mlp_body])
+        user_z = self.user_embedding(inputs[0])
+        item_z = self.item_embedding(inputs[1])
+        z = self.concat([user_z, item_z])
 
-        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(
-            body
-        )
+        for layer in self.hidden:
+            z = layer(z)
 
-        return Model(inputs=[user_input, item_input], outputs=output)
+        return self.prediction(z)
 
 
-class GeneralizedMatrixFactorizationModel(base.NeuralRecommenderModel):
+class NeuralMatrixFactorization(Model):
     """
-    An implementation of a Generalized Matrix Factorization (GMF) model in Keras.
+    A Keras model implementing Neural Matrix Factorization (GMF) architecture
+    from [1].
 
     References
     ----------
     [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
-
     """
 
-    def _build_model(
+    def __init__(
         self,
-        dataset: Dataset,
-        n_user_dim: int = 1,
-        n_item_dim: int = 1,
-        n_factors: int = 50,
-        **kwargs: Optional[Any]
-    ) -> Model:
+        n: int,
+        m: int,
+        factors: int = 32,
+        layers: Tuple[int, ...] = (32, 16, 8),
+        activation: Union[str, Activation] = "relu",
+        regularizer: Optional[Regularizer] = None,
+        embedding_regularizer: Optional[Regularizer] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """
-        Build a Keras model, in this case a GeneralizedMatrixFactorizationModel (GMF)
-        model. See [1] for more info. The original code released with [1] can be
-        found at [2].
+        Initialize a NMF model.
 
         Parameters
         ----------
-        dataset: Dataset
-            The input dataset. This is used to specify the 'vocab' size of each of the
-            'embedding blocks' (of which there are two in this architecture).
-        n_user_dim: int
-            The dimensionality of the user input vector. When using metadata, you should
-            make sure to set this to the size of each of these vectors.
-        n_item_dim: int
-            The dimensionality of the item input vector. When using metadata, you should
-            make sure to set this to the size of each of these vectors.
-        n_factors: int
-            The dimensionality of the latent feature space _for both users and items_
-            for the GMF component of the architecture.
+        n: int
+            The size of the 'vocabulary' of users (i.e. unique user IDs + metadata tags)
+        m: int
+            The size of the 'vocabulary' of items (i.e. unique item IDs + metadata tags)
+        layers: tuple
+            A tuple, where each element corresponds to the number of units in each of
+            the layers of the MLP.
+        regularizer: Regularizer
+            A regularizer to be applied to hidden layers. See keras.layers.Dense
+        embedding_regularizer: Regularizer
+            A regularizer to be applied to Embdeddings. See keras.layers.Embedding
+        activation: str, Regularizer
+            The activation function to use for hidden layers.
+        args: Any, optional
+            Optional args to be passed to base keras.Model.
+        kwargs: Any
+            Optional kwargs to be passed to base keras.Model
 
-        Returns
-        -------
-        output: Model
-            The 'complete' Keras Model object.
-
-        References
-        ----------
-        [1] He et al. https://dl.acm.org/doi/10.1145/3038912.3052569
-        [2] https://github.com/hexiangnan/neural_collaborative_filtering
         """
 
-        n_user_vocab = dataset.all_users.shape[0]
-        n_item_vocab = dataset.all_items.shape[0]
-
-        if dataset.user_meta is not None:
-            n_user_vocab += dataset.user_meta.shape[1]
-        if dataset.item_meta is not None:
-            n_item_vocab += dataset.item_meta.shape[1]
-
-        user_input, user_bias, user_factors = utils.get_embedding_block(
-            n_user_vocab, n_user_dim, n_factors, **kwargs
+        super().__init__(*args, **kwargs)
+        self.gmf_user_embedding = InputEmbeddingBlock(
+            n, factors, regularizer=embedding_regularizer
         )
-        item_input, item_bias, item_factors = utils.get_embedding_block(
-            n_item_vocab, n_item_dim, n_factors, **kwargs
+        self.gmf_item_embedding = InputEmbeddingBlock(
+            m, factors, regularizer=embedding_regularizer
+        )
+        self.gmf_multiply = Multiply()
+
+        # check units -- this could cause issues.
+        self.mlp_user_embedding = InputEmbeddingBlock(
+            n, layers[0] // 2, regularizer=embedding_regularizer
+        )
+        self.mlp_item_embedding = InputEmbeddingBlock(
+            m, layers[0] // 2, regularizer=embedding_regularizer
+        )
+        self.mlp_concat = Concatenate()
+        self.mlp_hidden = list(self._build_layers(layers, activation, regularizer))
+
+        self.concat = Concatenate()
+        self.prediction = Dense(
+            1,
+            activation="sigmoid",
+            kernel_initializer=lecun_uniform(),
+            name="prediction",
         )
 
-        body = Multiply()([user_factors, item_factors])
-        output = Dense(1, activation="sigmoid", kernel_initializer=lecun_uniform())(
-            body
-        )
+    @staticmethod
+    def _build_layers(
+        layers: Iterable[int],
+        activation: Union[str, Activation],
+        regularizer: Regularizer,
+    ) -> Iterable[Dense]:
+        """Build the model's hidden layers."""
 
-        return Model(inputs=[user_input, item_input], outputs=output)
+        for i, layer in enumerate(layers):
+            yield Dense(
+                layer,
+                activity_regularizer=regularizer,
+                activation=activation,
+                name=f"layer{i+1}",
+            )
+
+    def call(
+        self,
+        inputs: Union[List[Tensor], Tensor],
+        training: Optional[bool] = None,
+        mask: Optional[Union[List[Tensor], Tensor]] = None,
+    ) -> Union[List[Tensor], Tensor]:
+        """Invoke the model. A single 'forward pass'."""
+
+        mlp_user_z = self.mlp_user_embedding(inputs[0])
+        mlp_item_z = self.mlp_item_embedding(inputs[1])
+        mlp_z = self.mlp_concat([mlp_user_z, mlp_item_z])
+
+        for layer in self.mlp_hidden:
+            mlp_z = layer(mlp_z)
+
+        gmf_user_z = self.gmf_user_embedding(inputs[0])
+        gmf_item_z = self.gmf_item_embedding(inputs[1])
+        gmf_z = self.gmf_multiply([gmf_user_z, gmf_item_z])
+
+        z = self.concat([gmf_z, mlp_z])
+
+        return self.prediction(z)

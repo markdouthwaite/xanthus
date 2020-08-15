@@ -226,10 +226,10 @@ Remember that \(as with any ML model\) you'll want to tweak your hyperparameters
 Now to diagnose how well your model has done. The evaluation protocol here is set up in accordance with the methodology outlined in [the original paper](getting-started.md). To get yourself ready to generate some scores, you'll need to run:
 
 ```python
-from xanthus.evaluate import he_sampling
+from xanthus.evaluate import create_rankings
 
 _, test_items, _ = test_ds.to_components(shuffle=False)
-users, items = he_sampling(test_ds, train_ds, n_samples=200)
+users, items = create_rankings(test_ds, train_ds, n_samples=200)
 ```
 
 So, what's going on here? First, you're importing the `he_sampling` function. This implements a sampling approach used be [He et al.](getting-started.md) in their work. The idea is that you evaluate your model on the user-item pairs in your test set, and for each 'true' user-item pair, you sample `n_samples` negative instances for that user \(i.e. items they haven't interacted with\). In the case of the `he_sampling` function, this produces and array of shape `n_users, n_samples + 1`. Concretely, for each user, you'll get an array where the first element is a positive sample \(something they _did_ interact with\) and `n_samples` negative samples \(things they _did not_ interact with\).

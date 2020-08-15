@@ -10,9 +10,9 @@ from typing import Optional, Any
 import fire
 import numpy as np
 import pandas as pd
-from tensorflow.keras import callbacks
-from xanthus.models import baseline, neural
-from xanthus.evaluate import he_sampling, score, metrics
+from xanthus.models import baseline
+from xanthus.models.legacy import neural
+from xanthus.evaluate import create_rankings, score, metrics
 from xanthus.utils import create_datasets
 
 
@@ -87,7 +87,7 @@ def ncf(
         },
     ]
 
-    users, items = he_sampling(test_dataset, train_dataset)
+    users, items = create_rankings(test_dataset, train_dataset)
 
     results = _run_trials(
         neural_models,
@@ -119,11 +119,11 @@ def baselines(
     _, test_items, _ = test_dataset.to_components(shuffle=False)
 
     baseline_models = [
-        baseline.AlternatingLeastSquaresModel,
-        baseline.BayesianPersonalizedRankingModel,
+        baseline.AlternatingLeastSquares,
+        baseline.BayesianPersonalizedRanking,
     ]
 
-    users, items = he_sampling(test_dataset, train_dataset)
+    users, items = create_rankings(test_dataset, train_dataset)
 
     baseline_configs = [
         {"factors": 8, "iterations": 15},

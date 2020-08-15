@@ -213,10 +213,6 @@ class NeuralRecommenderModel(RecommenderModel):
             list of 'users' was provided, this will be ordered by this list. If 'users'
             are not provided, it will be ordered by 'dataset.all_users'.
 
-        # Todo:
-        # * This needs an overhaul. Some of that will involve re-working the
-        #   dataset generators, but this feels v. clunky & extraordinarily slow.
-
         """
 
         recommended = []

@@ -7,8 +7,6 @@
 
 [**Quickstart**](#quickstart)
 | [**Install guide**](#installation)
-| [**Contributing**](docs/contributing.md)
-| [**Known issues**](#known-performance-issues)
 
 ## What is Xanthus?
 
@@ -41,17 +39,7 @@ pip install xanthus
 
 That's it, you're good to go. Well, except for one thing...
 
-The package makes extensive use of [Tensorflow 2.0]() and the [Keras]() API. If
+The package makes extensive use of [Tensorflow 2.0](https://www.tensorflow.org/tutorials/quickstart/beginner) and the [Keras](https://keras.io/) API. If
 you want to make use of the GPU acceleration provided by Tensorflow, you'll need to 
-follow the [Tensorflow team's guide]() for setting that up. If you don't need GPUs
+follow the [Tensorflow team's guide](https://www.tensorflow.org/install/gpu) for setting that up. If you don't need GPUs
 right now, then great, you _really_ are all set.
-
-## Known performance issues
-
-This is a pre-release. There's likely to be a few performance issues. Here's a couple that are being worked on:
-
-* The negative sampling `xanthus.datasets.utils.negative_sampling` approach is expensive and can therefore be slow for large datasets.
-* The inference method (`NeuralRecommenderModel.predict`) is currently pretty slow. An alternative is on its way.
-* The training method (`NeuralRecommenderModel.fit`) is a little crude, again, improvements are inbound.
-
-You will likely find other performance issues on very large datasets. Hold tight for some optimizations, it'll get there.

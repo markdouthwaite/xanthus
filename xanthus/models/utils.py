@@ -4,7 +4,7 @@ The MIT License
 Copyright (c) 2018-2020 Mark Douthwaite
 """
 
-from typing import Optional, Tuple, Any, NoReturn
+from typing import Optional, Tuple, Any, Union, Dict, List
 
 import numpy as np
 from numpy import ndarray
@@ -29,18 +29,17 @@ class InputEmbeddingBlock(Layer):
         *args: Any,
         regularizer: Optional[Regularizer] = None,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> None:
         """Initialize the block!"""
 
         super().__init__(*args, **kwargs)
         self._n_factors = n_factors
         self._n_vocab = n_vocab
-        self._input = None
-        self._embedding = None
-        self._output = None
-        self._regularizer = regularizer
+        self._embedding: Optional[Embedding] = None
+        self._output: Optional[Flatten] = None
+        self._regularizer: Optional[Union[Regularizer, str]] = regularizer
 
-    def build(self, input_shape: Tuple[int, ...]) -> NoReturn:
+    def build(self, input_shape: Tuple[int, ...]) -> None:
         """Build the block!"""
 
         self._embedding = Embedding(
@@ -55,8 +54,13 @@ class InputEmbeddingBlock(Layer):
     def call(self, inputs: ndarray, **kwargs: Any) -> ndarray:
         """Call the block."""
 
-        x = self._embedding(inputs)
-        return self._output(x)
+        if self._embedding is None or self._output is None:
+            raise ValueError(
+                "You must call 'build' on an InputEmbeddingBlock before 'call'."
+            )
+        else:
+            x = self._embedding(inputs)
+            return self._output(x)
 
 
 def get_embedding_block(
@@ -110,14 +114,19 @@ def get_embedding_block(
 
 def reshape_recommended(
     users: ndarray, items: ndarray, scores: ndarray, n: int, mode: str = "array"
-) -> ndarray:
-    recommended = {k: [] for k in users[:, 0]}
+) -> Union[ndarray, Dict[int, List[Tuple[int, float]]]]:
+    """
+    Reshape recommendations from 'long' format into 'wide' format.
+    """
+
+    recommended: Dict[int, List[Tuple[int, float]]] = {k: [] for k in users[:, 0]}
 
     for user, item, rating in zip(users[:, 0], items[:, 0], scores.flatten()):
         recommended[user].append((item, rating))
 
     if mode == "dict":
         return recommended
+
     elif mode == "array":
         return np.asarray(
             [

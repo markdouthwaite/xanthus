@@ -35,7 +35,7 @@ class GeneralizedMatrixFactorization(Model):
         *args: Any,
         embedding_regularizer: Optional[Regularizer] = None,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> None:
         """
         Initialize a GMF model.
 
@@ -100,13 +100,13 @@ class MultiLayerPerceptron(Model):
         self,
         n: int,
         m: int,
-        layers: Tuple[int] = (32, 16, 8),
+        layers: Tuple[int, ...] = (32, 16, 8),
         regularizer: Optional[Regularizer] = None,
         embedding_regularizer: Optional[Regularizer] = None,
         activation: Union[str, Activation] = "relu",
         *args: Any,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> None:
         """
         Initialize a GMF model.
 
@@ -151,7 +151,7 @@ class MultiLayerPerceptron(Model):
 
     @staticmethod
     def _build_layers(
-        layers: List[int], activation: Union[str, Activation], regularizer: Regularizer
+        layers: Iterable[int], activation: Union[str, Activation], regularizer: Regularizer
     ) -> Iterable[Layer]:
         """Build the model's hidden layers."""
 
@@ -196,13 +196,13 @@ class NeuralMatrixFactorization(Model):
         n: int,
         m: int,
         factors: int = 32,
-        layers: Tuple[int] = (32, 16, 8),
+        layers: Tuple[int, ...] = (32, 16, 8),
         activation: Union[str, Activation] = "relu",
         regularizer: Optional[Regularizer] = None,
         embedding_regularizer: Optional[Regularizer] = None,
         *args: Any,
         **kwargs: Any,
-    ) -> NoReturn:
+    ) -> None:
         """
         Initialize a NMF model.
 

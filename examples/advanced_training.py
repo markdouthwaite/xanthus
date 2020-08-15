@@ -10,8 +10,6 @@ import numpy as np
 import pandas as pd
 
 from tensorflow.keras import callbacks
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.losses import BinaryCrossentropy
 
 from sklearn.model_selection import train_test_split
 
@@ -56,7 +54,7 @@ def run(version="ml-latest-small", samples=4, batch_size=256, epochs=1):
     model = models.GeneralizedMatrixFactorization(
         n=train_dataset.user_dim, m=train_dataset.item_dim
     )
-    model.compile(optimizer=Adam(), loss=BinaryCrossentropy())
+    model.compile(optimizer="adam", loss="binary_crossentropy")
 
     # get training data
     user_x, item_x, y = train_dataset.to_components(

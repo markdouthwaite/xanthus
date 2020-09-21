@@ -14,7 +14,8 @@ from .metrics import (
     pak,
 )
 
-from .utils import split, create_rankings, leave_one_out
+from .utils import split, leave_one_out, create_rankings
+
 
 __all__ = [
     "score",
@@ -24,7 +25,7 @@ __all__ = [
     "coverage_at_k",
     "cak",
     "pak",
-    "create_rankings",
     "leave_one_out",
     "split",
+    "create_rankings",
 ]

@@ -18,7 +18,6 @@ def benchmark(manager, epochs, **kwargs):
         logger.info(f"Running epoch {epoch + 1} of {epochs}...")
         manager.update(1)
         metrics = manager.metrics(**kwargs)
-        print(metrics)
         metrics["epoch"] = epoch + 1
         records.append(metrics)
 

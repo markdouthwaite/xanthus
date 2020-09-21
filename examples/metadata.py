@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from xanthus import datasets
+from xanthus.datasets.build import build
 from xanthus.models import GeneralizedMatrixFactorization, utils
 from xanthus.evaluate import create_rankings, score, metrics
 
@@ -33,7 +34,7 @@ def run(version="ml-latest-small", samples=4, input_dim=3, batch_size=256, epoch
 
     df = df.rename(columns={"userId": "user", "movieId": "item"})
 
-    train_dataset, test_dataset = datasets.build(
+    train_dataset, test_dataset = build(
         df, item_df=item_df, policy="leave_one_out"
     )
 

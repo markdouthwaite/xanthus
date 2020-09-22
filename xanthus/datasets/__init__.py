@@ -7,7 +7,6 @@ Copyright (c) 2018-2020 Mark Douthwaite
 from .core import Dataset
 from .encoder import DatasetEncoder
 from .utils import groupby, fold, sample_negatives
-from .build import build
 from . import movielens
 
 
@@ -17,6 +16,5 @@ __all__ = [
     "sample_negatives",
     "Dataset",
     "DatasetEncoder",
-    "build",
     "movielens",
 ]

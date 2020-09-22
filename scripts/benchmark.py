@@ -1,150 +1,44 @@
-"""
-The MIT License
-
-Copyright (c) 2018-2020 Mark Douthwaite
-"""
-
-import os
-from typing import Optional, Any
-
 import fire
-import numpy as np
+import logging
+
 import pandas as pd
-from xanthus.models import baseline
-from xanthus.models.legacy import neural
-from xanthus.evaluate import create_rankings, score, metrics
-from xanthus.utils import create_datasets
+from xanthus.datasets.build import build
+from xanthus.datasets.movielens import download
+
+from xanthus.utils.benchmarking import (
+    benchmark,
+    save,
+)
+
+from managers import NeuralModelManager, BaselineModelManager
 
 
-np.random.seed(42)
+logging.basicConfig(level=logging.INFO)
 
 
-def _run_trials(
-    models,
-    configs,
-    train,
-    test,
-    sampled_users,
-    sampled_items,
-    held_out_items,
-    n_trials=3,
-):
-    results = []
+def run(experiment="benchmarks-2", factors=(8,), epochs=15, root="data"):
+    if isinstance(factors, (int, str)):
+        factors = (int(factors),)
 
-    for i in range(n_trials):
-        for config in configs:
-            for model in models:
-                m = model(**config)
-                m.fit(train)
-                recommended = m.predict(test, users=sampled_users, items=sampled_items)
-                ndcg = score(metrics.truncated_ndcg, held_out_items, recommended).mean()
-                hit_ratio = score(metrics.hit_ratio, held_out_items, recommended).mean()
+    download()
 
-                result = dict(name=m, trial=i, ndcg=ndcg, hit_ratio=hit_ratio,)
-                for key, value in config.items():
-                    if isinstance(value, dict):
-                        result.update(value)
-                    else:
-                        result[key] = value
-                results.append(result)
+    df = pd.read_csv("data/ml-latest-small/ratings.csv")
+    df = df.rename(columns={"movieId": "item", "userId": "user"})
+    train, val = build(df)
 
-    return results
+    for factor in factors:
+        managers = [
+            BaselineModelManager("als", factors=factor, datasets=(train, val)),
+            BaselineModelManager("bpr", factors=factor, datasets=(train, val)),
+            NeuralModelManager("nmf", factors=factor, datasets=(train, val)),
+            NeuralModelManager("gmf", factors=factor, datasets=(train, val)),
+            NeuralModelManager("mlp", factors=factor, datasets=(train, val)),
+        ]
 
-
-def _dump_results(results, path):
-    df = pd.DataFrame.from_records(results)
-
-    if not os.path.exists(path):
-        os.makedirs(os.path.split(path)[0], exist_ok=True)
-
-    df.to_csv(path, index=False)
-
-
-def ncf(
-    input_path: str = "data/movielens-100k/ratings.csv",
-    output_path: str = "data/benchmarking/ncf2.csv",
-    n_trials: int = 1,
-    policy: str = "leave_one_out",
-    **kwargs: Optional[Any]
-):
-    df = pd.read_csv(input_path)
-    df = df.rename(columns={"userId": "user", "movieId": "item"})
-
-    train_dataset, test_dataset = create_datasets(df, policy=policy, **kwargs)
-
-    _, test_items, _ = test_dataset.to_components(shuffle=False)
-
-    neural_models = [
-        neural.GeneralizedMatrixFactorizationModel,
-        neural.MultiLayerPerceptronModel,
-    ]
-
-    neural_configs = [
-        {
-            "n_factors": 8,
-            "negative_samples": 1,
-            "fit_params": {"epochs": 25, "batch_size": 256},
-        },
-    ]
-
-    users, items = create_rankings(test_dataset, train_dataset)
-
-    results = _run_trials(
-        neural_models,
-        neural_configs,
-        train_dataset,
-        test_dataset,
-        users,
-        items,
-        test_items,
-        n_trials=n_trials,
-    )
-
-    _dump_results(results, output_path)
-
-
-def baselines(
-    input_path: str = "data/movielens-100k/ratings.csv",
-    output_path: str = "data/benchmarking/baselines.csv",
-    n_trials: int = 1,
-    policy: str = "leave_one_out",
-    **kwargs: Optional[Any]
-):
-
-    df = pd.read_csv(input_path)
-    df = df.rename(columns={"userId": "user", "movieId": "item"})
-
-    train_dataset, test_dataset = create_datasets(df, policy=policy, **kwargs)
-
-    _, test_items, _ = test_dataset.to_components(shuffle=False)
-
-    baseline_models = [
-        baseline.AlternatingLeastSquares,
-        baseline.BayesianPersonalizedRanking,
-    ]
-
-    users, items = create_rankings(test_dataset, train_dataset)
-
-    baseline_configs = [
-        {"factors": 8, "iterations": 15},
-        {"factors": 16, "iterations": 15},
-        {"factors": 32, "iterations": 15},
-        {"factors": 64, "iterations": 15},
-    ]
-
-    results = _run_trials(
-        baseline_models,
-        baseline_configs,
-        train_dataset,
-        test_dataset,
-        users,
-        items,
-        test_items,
-        n_trials=n_trials,
-    )
-
-    _dump_results(results, output_path)
+        for manager in managers:
+            results, info = benchmark(manager, epochs)
+            save(experiment, manager, results, info, root=root, identifier=str(factor))
 
 
 if __name__ == "__main__":
-    fire.Fire()
+    fire.Fire(run)

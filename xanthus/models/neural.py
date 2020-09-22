@@ -151,7 +151,9 @@ class MultiLayerPerceptron(Model):
 
     @staticmethod
     def _build_layers(
-        layers: Iterable[int], activation: Union[str, Activation], regularizer: Regularizer
+        layers: Iterable[int],
+        activation: Union[str, Activation],
+        regularizer: Regularizer,
     ) -> Iterable[Layer]:
         """Build the model's hidden layers."""
 

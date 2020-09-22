@@ -9,17 +9,10 @@ from typing import Tuple
 
 from pandas import DataFrame, concat
 
-from numpy import (
-    in1d,
-    concatenate,
-    ndarray,
-    unique,
-    c_,
-    asarray,
-)
+from numpy import in1d, concatenate, ndarray, asarray, c_, unique
 from numpy.random import choice
 
-from ..datasets import Dataset, groupby
+from xanthus.datasets import Dataset, groupby
 
 
 def _ignore(df: DataFrame, elements: ndarray, key: str, frac: float) -> DataFrame:
@@ -261,7 +254,7 @@ def create_rankings(
         items[len(unique_users) :],
     )
 
-    groups, grouped = groupby(sampled_users, sampled_items)
+    _, grouped = groupby(sampled_users, sampled_items)
 
     grouped = c_[grouped, items[: len(unique_users)]]
 
